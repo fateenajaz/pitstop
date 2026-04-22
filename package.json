@@ -1,0 +1,14 @@
+{
+  "name": "opus-4.7-hackathon",
+  "version": "1.0.0",
+  "description": "Pit Stop - Autonomous car investigation agent",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && node server.js",
+    "client": "cd frontend && npm run dev"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

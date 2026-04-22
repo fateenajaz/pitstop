@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+:root {
+  /* Backgrounds */
+  --bg-primary:     #F2EDE4;
+  --bg-secondary:   #EDE7DC;
+  --bg-surface:     #FFFFFF;
+  --bg-dark:        #1A1612;
+  --bg-dark-2:      #241F19;
+
+  /* Anthropic Brand */
+  --accent-coral:   #D97757;
+  --accent-coral-2: #C4622A;
+  --accent-coral-light: rgba(217, 119, 87, 0.12);
+
+  /* Text */
+  --text-primary:   #1A1612;
+  --text-secondary: #6B6157;
+  --text-tertiary:  #9E958A;
+  --text-inverse:   #F2EDE4;
+
+  /* Semantic */
+  --urgent-critical: #C0392B;
+  --urgent-high:     #D97757;
+  --urgent-moderate: #E8A838;
+  --urgent-low:      #5B8A5F;
+
+  /* Borders */
+  --border-light:   rgba(26, 22, 18, 0.08);
+  --border-medium:  rgba(26, 22, 18, 0.15);
+  --border-strong:  rgba(26, 22, 18, 0.25);
+
+  /* Thinking pane (dark surface) */
+  --thinking-bg:    #1A1612;
+  --thinking-text:  rgba(242, 237, 228, 0.65);
+  --thinking-accent: #D97757;
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(26,22,18,0.06), 0 1px 2px rgba(26,22,18,0.04);
+  --shadow-md:  0 4px 12px rgba(26,22,18,0.08), 0 2px 4px rgba(26,22,18,0.05);
+  --shadow-lg:  0 12px 40px rgba(26,22,18,0.12), 0 4px 8px rgba(26,22,18,0.06);
+
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+@theme {
+  /* Fonts mapping */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+  /* The default sans is our body font */
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+
+  /* Colors mapping */
+  --color-coral: var(--accent-coral);
+  --color-coral-dark: var(--accent-coral-2);
+  --color-coral-light: var(--accent-coral-light);
+  --color-cream: var(--bg-primary);
+  --color-cream-dark: var(--bg-secondary);
+  --color-ink: var(--bg-dark);
+  --color-ink-2: var(--bg-dark-2);
+  --color-warmgray: var(--text-secondary);
+  --color-warmgray-light: var(--text-tertiary);
+
+  /* Animations */
+  --animate-slowspin: slowspin 8s linear infinite;
+  --animate-pulse-soft: pulse 3s ease-in-out infinite;
+
+  @keyframes slowspin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.hero-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 640px;
+  color: var(--accent-coral);
+  opacity: 0.03;
+  animation: slowspin 24s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+  font-family: serif;
+}
+
+/* Custom scanline utility for thinking pane */
+.scanline-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Typewriter effect animation */
+@keyframes type {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: type 0.5s steps(40, end);
+}
