@@ -1,5 +1,5 @@
 {
-  "name": "opus-4.7-hackathon",
+  "name": "pitstop",
   "version": "1.0.0",
   "description": "Pit Stop - Autonomous car investigation agent",
   "main": "index.js",

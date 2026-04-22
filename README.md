@@ -26,8 +26,8 @@ Pit Stop is designed with the Anthropic/Claude product design language in mindâ€
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/fateenajaz/opus-4.7-hackathon.git
-   cd opus-4.7-hackathon
+   git clone https://github.com/fateenajaz/pitstop.git
+   cd pitstop
    ```
 
 2. **Install dependencies**:
