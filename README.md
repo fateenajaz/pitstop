@@ -1,55 +1,33 @@
-# Pit Stop: Autonomous Vehicle Diagnostic System
+# 🏁 Pit Stop
 
-Pit Stop is a precision diagnostic tool powered by state-of-the-art AI. It leverages autonomous investigation agents to identify vehicle faults through symptom descriptions and visual evidence, providing professional-grade diagnostic briefs with mechanical precision.
+### Autonomous Vehicle Diagnostic Investigation — Powered by Claude Opus 4.7
 
-## ✳ Project Philosophy
+Describe a symptom. Opus 4.7 runs a complete multi-phase investigation — deciding what evidence it needs, asking for it, challenging its own conclusions — all within a single bounded agentic loop.
 
-Pit Stop is designed with the Anthropic/Claude product design language in mind—warm minimalism, trustworthiness, and intentionality. It aims to bridge the gap between complex vehicle diagnostics and user-friendly, expert-driven insights.
+---
 
-## 🚀 Features
+## What Makes This Different
 
-- **Autonomous Investigations**: Multi-phase diagnostic process including intake, evidence gap analysis, and verification.
-- **Real-time Reasoning**: Live streaming of the agent's internal reasoning process (Powered by Claude 4.7).
-- **Annotated Visuals**: AI-driven fault localization on uploaded images with high-resolution pixel precision.
-- **Diagnostic Briefs**: Professional summaries including primary faults, confidence scores, urgency levels, and recommended actions.
-- **Budget Management**: Transparent token budget tracking for efficient AI resource utilization.
-- **Garage Integration**: Seamless connection to certified local garages for immediate booking.
+Pit Stop is not a chatbot wrapper with a car theme. It is a single bounded agentic loop that fully orchestrates itself using three capabilities that exist only in Claude Opus 4.7 and are strictly impossible on Opus 4.6:
 
-## 🛠 Tech Stack
+| Capability | What Pit Stop Uses It For | Why It Matters |
+| :--- | :--- | :--- |
+| **Task Budgets** (`task-budgets-2026-03-13`) | Opus sees its own token budget as a live countdown and self-manages investigation depth | We don't orchestrate the phases — the model decides when to move between them |
+| **Adaptive Thinking** (`thinking: {type: "adaptive"}`) | Summarized reasoning streams to the frontend in real time | Shows how the model is thinking, not just what it concluded |
+| **3.75MP High-Resolution Vision + 1:1 Pixel Coordinates** | Fault localization returned as exact pixel bounding boxes on the original image | Every annotation references a specific visual observation, never a generic guess |
 
-- **Frontend**: React, Vite, Tailwind CSS v4, Framer Motion, Lucide React.
-- **Backend**: Node.js, Express, Multer (for image handling).
-- **AI Engine**: Anthropic SDK (Claude 4.7 model).
-- **Styling**: Custom design system with warm cream tones and coral accents.
+---
 
-## 📦 Installation & Setup
+## The Core Thesis
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/fateenajaz/pitstop.git
-   cd pitstop
-   ```
+A driver describes a symptom. Claude Opus 4.7:
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   cd frontend && npm install
-   cd ../backend && npm install
-   ```
+1.  **Forms 3 ranked hypotheses** with confidence scores
+2.  **Decides autonomously** whether existing evidence is sufficient (confidence > 0.80 → skip to verification)
+3.  **Identifies the exact visual evidence needed** to disambiguate, if not sufficient
+4.  **Requests one specific photo** with precise angle and lighting instructions
+5.  **Analyzes the new image** at full 3.75MP resolution using 1:1 pixel coordinates
+6.  **Challenges its own top hypothesis** — actively looking for contradictions
+7.  **Outputs a structured Diagnostic Brief artifact** with pixel-accurate annotations
 
-3. **Configure Environment Variables**:
-   Create a `.env` file in the `backend/` directory:
-   ```env
-   ANTHROPIC_API_KEY=your_api_key_here
-   PORT=3001
-   ```
-
-4. **Run the application**:
-   From the root directory:
-   ```bash
-   npm run dev
-   ```
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The output is not a chat message. It is a **Diagnostic Brief** — a structured artifact that represents the end-state of an autonomous investigation.
