@@ -1,163 +1,202 @@
 import React, { useState } from 'react';
 import UrgencyBadge from './UrgencyBadge';
 import { motion } from 'framer-motion';
-import GarageList from './GarageList';
 
 export default function DiagnosticBrief({ brief, garages }) {
   const [briefSent, setBriefSent] = useState(false);
 
-  // Confidence bar gradient logic
-  let fillClass = 'from-[var(--urgent-low)] to-[var(--urgent-moderate)]';
-  if (brief.urgency === 'high') fillClass = 'from-[var(--urgent-moderate)] to-[var(--urgent-high)]';
-  if (brief.urgency === 'critical') fillClass = 'from-[var(--urgent-high)] to-[var(--urgent-critical)]';
+  let fillColor = 'var(--urgent-low)';
+  if (brief.urgency === 'moderate') fillColor = 'var(--urgent-moderate)';
+  if (brief.urgency === 'high') fillColor = 'var(--urgent-high)';
+  if (brief.urgency === 'critical') fillColor = 'var(--urgent-critical)';
 
   const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
-      className="bg-[var(--bg-surface)] rounded-[var(--radius-xl)] shadow-lg overflow-hidden"
+      className="brief-card"
+      style={{ alignSelf: 'flex-start' }}
     >
-      <div className="p-9">
-        {/* Header Row */}
-        <div className="flex justify-between items-start mb-6">
+      <div style={{ padding: 20 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
-            <h1 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-1">
+            <div style={{ 
+              fontFamily: 'var(--font-mono)', 
+              fontSize: 10, 
+              letterSpacing: '0.12em', 
+              color: 'var(--text-tertiary)', 
+              textTransform: 'uppercase',
+              marginBottom: 4 
+            }}>
               Diagnostic Brief
-            </h1>
-            <div className="font-body text-[15px] font-medium text-[var(--text-primary)]">
-              2019 Toyota Camry
             </div>
-            <div className="font-body text-[13px] text-[var(--text-tertiary)] mt-0.5">
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               {todayStr}
             </div>
           </div>
           <UrgencyBadge urgency={brief.urgency} text={brief.urgency_label} />
         </div>
 
-        <div className="h-px bg-[var(--border-light)] w-full mb-8" />
+        <div style={{ height: 1, background: 'var(--border-subtle)', marginBottom: 16 }} />
 
-        {/* Fault Section */}
-        <div className="mb-8">
-          <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-2">
+        {/* Primary Fault */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: 10, 
+            letterSpacing: '0.1em', 
+            color: 'var(--text-tertiary)', 
+            textTransform: 'uppercase',
+            marginBottom: 6 
+          }}>
             Primary Fault
-          </h2>
-          <div className="h-px bg-[var(--border-light)] w-full mb-3" />
-          <div className="font-display text-[22px] text-[var(--text-primary)] mb-4">
+          </div>
+          <div style={{ 
+            fontFamily: 'var(--font-heading)', 
+            fontSize: 18, 
+            fontWeight: 600, 
+            color: 'var(--text-primary)',
+            marginBottom: 8 
+          }}>
             {brief.primary_fault}
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 h-1 bg-[var(--border-light)] rounded-sm overflow-hidden max-w-xs">
-              <div 
-                className={`absolute top-0 left-0 h-full rounded-sm bg-gradient-to-r ${fillClass}`}
-                style={{ width: `${Math.round(brief.confidence * 100)}%` }}
-              />
+          {/* Confidence bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1, height: 3, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden', maxWidth: 160 }}>
+              <div style={{ height: '100%', width: `${Math.round(brief.confidence * 100)}%`, background: fillColor, borderRadius: 2, transition: 'width 0.6s ease' }} />
             </div>
-            <span className="font-mono text-[12px] text-[var(--text-primary)]">
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>
               {Math.round(brief.confidence * 100)}%
             </span>
           </div>
         </div>
 
-        {/* Explanation Section */}
-        <div className="mb-8 flex flex-col gap-6">
-          <div>
-            <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-2">
-              What's happening
-            </h2>
-            <div className="h-px bg-[var(--border-light)] w-full mb-3" />
-            <p className="font-body text-[15px] leading-[1.65] text-[var(--text-primary)]">
-              {brief.plain_explanation}
-            </p>
+        {/* Explanation */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: 10, 
+            letterSpacing: '0.1em', 
+            color: 'var(--text-tertiary)', 
+            textTransform: 'uppercase',
+            marginBottom: 6 
+          }}>
+            What's happening
           </div>
-          
-          <div>
-            <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-2">
-              What happens if you ignore this
-            </h2>
-            <div className="h-px bg-[var(--border-light)] w-full mb-3" />
-            <p className="font-body text-[15px] leading-[1.65] text-[var(--text-primary)]">
-              {brief.what_happens_if_ignored}
-            </p>
-          </div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+            {brief.plain_explanation}
+          </p>
         </div>
 
-        {/* Cost + Action Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-[var(--border-light)] rounded-[var(--radius-md)] overflow-hidden mb-2">
-          <div className="p-5 border-b md:border-b-0 md:border-r border-[var(--border-light)]">
-            <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-2">
-              Estimated Cost
-            </h2>
-            <div className="font-body text-[15px] text-[var(--text-primary)] font-medium">
+        {/* If ignored */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: 10, 
+            letterSpacing: '0.1em', 
+            color: 'var(--text-tertiary)', 
+            textTransform: 'uppercase',
+            marginBottom: 6 
+          }}>
+            If ignored
+          </div>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+            {brief.what_happens_if_ignored}
+          </p>
+        </div>
+
+        {/* Cost + Action */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: 0,
+          border: '1px solid var(--border-subtle)', 
+          borderRadius: 'var(--radius-md)', 
+          overflow: 'hidden',
+          marginBottom: 4
+        }}>
+          <div style={{ padding: 12, borderRight: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4 }}>
+              Est. Cost
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
               {brief.estimated_cost_band}
             </div>
           </div>
-          <div className="p-5">
-            <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-2">
-              Recommended Action
-            </h2>
-            <div className="font-body text-[15px] text-[var(--text-primary)] leading-snug">
+          <div style={{ padding: 12 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 4 }}>
+              Action
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>
               {brief.recommended_action}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Garages Section (below main brief, light gray bg) */}
+      {/* Garages */}
       {garages && garages.length > 0 && (
-        <div className="bg-[var(--bg-secondary)] p-9 pt-7 border-t border-[var(--border-light)]">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase">
+        <div style={{ 
+          padding: '16px 20px', 
+          borderTop: '1px solid var(--border-subtle)', 
+          background: 'rgba(255,255,255,0.02)' 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
               Nearby Garages
-            </h2>
-            
+            </span>
             {briefSent ? (
-              <span className="font-body text-[13px] text-[var(--urgent-low)] font-medium flex items-center gap-1">
-                ✓ Brief sent to garage.
-              </span>
+              <span style={{ fontSize: 12, color: 'var(--accent-green)', fontWeight: 500 }}>✓ Sent</span>
             ) : (
-              <button 
+              <button
                 onClick={() => setBriefSent(true)}
-                className="bg-[var(--bg-dark)] text-[var(--text-inverse)] px-4 py-2 rounded-[var(--radius-md)] font-body text-[13px] font-medium hover:bg-[var(--accent-coral)] transition-colors"
+                style={{
+                  background: 'var(--accent-blue)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}
               >
                 Send Brief →
               </button>
             )}
           </div>
-          
-          <div className="h-px bg-[var(--border-light)] w-full mb-4" />
-          
-          <div className="flex flex-col">
-            {garages.map((g, i) => (
-              <div key={g.id} className="flex justify-between items-center py-[14px] border-b border-[var(--border-light)] last:border-0">
-                <div className="flex items-center gap-4">
-                  {i === 0 ? (
-                    <span className="text-[var(--accent-coral)] text-[10px]">●</span>
-                  ) : (
-                    <span className="text-transparent text-[10px]">●</span>
-                  )}
-                  <span className="font-body font-medium text-[var(--text-primary)] min-w-[180px]">
-                    {g.name}
-                  </span>
-                  <span className="font-body text-[13px] text-[var(--text-tertiary)] w-16">
-                    {g.distance_km} km
-                  </span>
-                  <span className="font-body text-[13px] text-[var(--text-tertiary)] w-16">
-                    ★ {g.rating}
-                  </span>
-                  <span className="font-body text-[13px] text-[var(--text-tertiary)] hidden md:block">
-                    {g.slots[0] || "Call for availability"}
-                  </span>
+          {garages.map((g, i) => (
+            <div key={g.id} style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '10px 0',
+              borderTop: i > 0 ? '1px solid var(--border-subtle)' : 'none'
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{g.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                  {g.distance_km}km · ★ {g.rating}
                 </div>
-                <button className="text-[12px] text-[var(--accent-coral)] border border-[var(--accent-coral)] rounded-full px-4 py-1 hover:bg-[var(--accent-coral-light)] transition-colors">
-                  Book
-                </button>
               </div>
-            ))}
-          </div>
+              <button style={{
+                fontSize: 11,
+                color: 'var(--accent-blue)',
+                border: '1px solid rgba(59,130,246,0.3)',
+                background: 'transparent',
+                borderRadius: 999,
+                padding: '4px 12px',
+                cursor: 'pointer'
+              }}>
+                Book
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </motion.div>

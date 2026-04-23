@@ -7,32 +7,30 @@ function TypewriterNote({ note, isLatest }) {
 
   useEffect(() => {
     if (!isLatest) return;
-    
-    let currentIndex = 0;
-    const intervalId = setInterval(() => {
-      setDisplayedText(note.note.substring(0, currentIndex + 1));
-      currentIndex++;
-      if (currentIndex === note.note.length) {
-        clearInterval(intervalId);
-      }
+    let idx = 0;
+    const iv = setInterval(() => {
+      setDisplayedText(note.note.substring(0, idx + 1));
+      idx++;
+      if (idx === note.note.length) clearInterval(iv);
     }, 30);
-
-    return () => clearInterval(intervalId);
+    return () => clearInterval(iv);
   }, [note.note, isLatest]);
 
   return (
-    <div className="relative pl-6 pb-6 last:pb-0">
-      {/* Timeline dot */}
-      <div className="absolute left-[3.5px] top-1.5 w-[6px] h-[6px] rounded-full bg-[var(--accent-coral)] z-10" />
-      
-      <div className="flex gap-4 items-start">
-        <div className="font-mono text-[11px] text-[var(--text-tertiary)] pt-0.5 w-10 shrink-0">
+    <div style={{ position: 'relative', paddingLeft: 24, paddingBottom: 20 }}>
+      <div style={{
+        position: 'absolute', left: 3.5, top: 6,
+        width: 6, height: 6, borderRadius: '50%',
+        background: 'var(--accent-blue)', zIndex: 1
+      }} />
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', paddingTop: 2, width: 40, flexShrink: 0 }}>
           {dateStr}
         </div>
-        <div className="font-body text-[14px] text-[var(--text-secondary)] leading-relaxed">
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           {displayedText}
           {isLatest && displayedText.length < note.note.length && (
-            <span className="inline-block w-1.5 h-3 bg-[var(--accent-coral)] animate-pulse ml-1 align-middle" />
+            <span style={{ display: 'inline-block', width: 6, height: 12, background: 'var(--accent-blue)', animation: 'pulse-soft 1s ease-in-out infinite', marginLeft: 4, verticalAlign: 'middle' }} />
           )}
         </div>
       </div>
@@ -42,38 +40,24 @@ function TypewriterNote({ note, isLatest }) {
 
 export default function CaseNotes({ notes = [], activeVehicle }) {
   return (
-    <div className="bg-transparent px-4">
-      <div className="mb-6">
-        <h3 className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase mb-1">
-          Vehicle History
-        </h3>
-        <div className="font-mono text-[10px] tracking-[0.12em] text-[var(--text-tertiary)] uppercase">
-          {activeVehicle?.label} · DEMO-001
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {activeVehicle?.name || activeVehicle?.label || 'Vehicle'} · History
         </div>
       </div>
-
-      <div className="relative">
-        {/* Vertical timeline line */}
+      <div style={{ position: 'relative' }}>
         {notes.length > 0 && (
-          <div className="absolute left-1.5 top-2 bottom-2 w-px bg-[var(--border-light)]" />
+          <div style={{ position: 'absolute', left: 6, top: 8, bottom: 8, width: 1, background: 'var(--border-subtle)' }} />
         )}
-
         {notes.length === 0 ? (
-          <div className="text-center py-8">
-            <span className="font-body italic text-[13px] text-[var(--text-tertiary)]">
-              No previous investigations.
-            </span>
+          <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            No previous investigations.
           </div>
         ) : (
-          <div className="flex flex-col">
-            {notes.map((note, idx) => (
-              <TypewriterNote 
-                key={`${note.timestamp}-${idx}`} 
-                note={note} 
-                isLatest={idx === notes.length - 1} 
-              />
-            ))}
-          </div>
+          notes.map((note, idx) => (
+            <TypewriterNote key={`${note.timestamp}-${idx}`} note={note} isLatest={idx === notes.length - 1} />
+          ))
         )}
       </div>
     </div>

@@ -1,77 +1,108 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { cn } from './BudgetMeter';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Brain } from 'lucide-react';
 
 export default function ThinkingPane({ thinkingText, isComplete }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const bottomRef = useRef(null);
 
-  // Auto-scroll to bottom when text updates
   useEffect(() => {
     if (isExpanded && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [thinkingText, isExpanded]);
 
+  if (!thinkingText) return null;
+
   return (
-    <div className={cn(
-      "bg-[var(--bg-dark-2)] rounded-[var(--radius-lg)] p-5 flex flex-col font-mono relative overflow-hidden transition-opacity duration-500",
-      isComplete ? "opacity-50" : "opacity-100"
-    )}>
-      {/* Header bar */}
-      <div 
-        className="flex justify-between items-center cursor-pointer mb-3"
+    <div 
+      style={{
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        maxWidth: 300,
+        alignSelf: 'flex-start',
+        opacity: isComplete ? 0.5 : 1,
+        transition: 'opacity 0.5s'
+      }}
+    >
+      {/* Header */}
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 14px',
+          cursor: 'pointer',
+        }}
       >
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            "w-[6px] h-[6px] rounded-full bg-[var(--accent-coral)]",
-            !isComplete ? "animate-pulse" : "opacity-30"
-          )} />
-          <h3 className="text-[var(--text-tertiary)] text-[10px] tracking-[0.15em] uppercase">
-            Opus 4.7 · Internal Reasoning
-          </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Brain size={13} color="var(--accent-blue)" style={!isComplete ? { animation: 'pulse-soft 2s ease-in-out infinite' } : { opacity: 0.4 }} />
+          <span style={{ 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: 10, 
+            letterSpacing: '0.12em', 
+            color: 'var(--text-tertiary)', 
+            textTransform: 'uppercase' 
+          }}>
+            Internal Reasoning
+          </span>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-3 h-3 text-[var(--text-tertiary)]" />
+          <ChevronUp size={14} color="var(--text-muted)" />
         ) : (
-          <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
+          <ChevronDown size={14} color="var(--text-muted)" />
         )}
       </div>
 
+      {/* Content */}
       {isExpanded && (
-        <div className="relative max-h-[320px] overflow-y-auto text-[var(--thinking-text)] text-[12px] leading-[1.7] scanline-bg custom-scrollbar pr-2">
-          <div className="whitespace-pre-wrap">{thinkingText}</div>
+        <div 
+          className="custom-scrollbar scanline-bg"
+          style={{
+            maxHeight: 240,
+            overflowY: 'auto',
+            padding: '0 14px 14px',
+            position: 'relative'
+          }}
+        >
+          <div style={{ 
+            fontFamily: 'var(--font-mono)', 
+            fontSize: 11, 
+            lineHeight: 1.7, 
+            color: 'rgba(255,255,255,0.45)',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {thinkingText}
+          </div>
           
           {isComplete && (
-            <div className="mt-4 text-[var(--text-tertiary)] italic">
+            <div style={{ 
+              marginTop: 12, 
+              fontFamily: 'var(--font-mono)', 
+              fontSize: 10, 
+              color: 'var(--text-muted)', 
+              fontStyle: 'italic' 
+            }}>
               Reasoning complete.
             </div>
           )}
           
           {!isComplete && (
-            <span className="inline-block w-1.5 h-3 bg-[var(--accent-coral)] animate-pulse ml-1 align-middle" />
+            <span style={{
+              display: 'inline-block',
+              width: 6,
+              height: 12,
+              background: 'var(--accent-blue)',
+              animation: 'pulse-soft 1s ease-in-out infinite',
+              marginLeft: 4,
+              verticalAlign: 'middle'
+            }} />
           )}
           <div ref={bottomRef} />
         </div>
       )}
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(26,22,18,0.2);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(217, 119, 87, 0.3);
-          border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(217, 119, 87, 0.5);
-        }
-      `}} />
     </div>
   );
 }
