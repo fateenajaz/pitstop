@@ -8,7 +8,7 @@ const PHASES = [
   { id: 'BRIEF', label: 'Brief' },
 ];
 
-export default function BudgetMeter({ budget, currentPhase, emittedPhases, isActive }) {
+export default function BudgetMeter({ budget, currentPhase, emittedPhases, isActive, phaseStatus = '', phaseProgress = null }) {
   const { used = 0, total = 60000, remaining = 60000 } = budget || {};
   const progress = Math.min(100, Math.max(0, (used / total) * 100));
   const isWarning = remaining < total * 0.25;
@@ -17,6 +17,44 @@ export default function BudgetMeter({ budget, currentPhase, emittedPhases, isAct
 
   return (
     <div className="budget-bar">
+      {(currentPhase || phaseStatus) && (
+        <div style={{ marginBottom: 10 }}>
+          {currentPhase && (
+            <div style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--text-tertiary)',
+              marginBottom: phaseStatus ? 4 : 0,
+            }}>
+              {PHASES.find((phase) => phase.id === currentPhase)?.label || currentPhase}
+            </div>
+          )}
+          {phaseStatus && (
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              {phaseStatus}
+            </div>
+          )}
+          {typeof phaseProgress === 'number' && (
+            <div style={{
+              marginTop: 8,
+              height: 4,
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: 999,
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.max(0, Math.min(100, phaseProgress * 100))}%`,
+                background: 'linear-gradient(90deg, var(--accent-cyan), var(--accent-blue))',
+                transition: 'width 0.45s ease',
+              }} />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Progress bar */}
       <div style={{ 
         height: 2, 

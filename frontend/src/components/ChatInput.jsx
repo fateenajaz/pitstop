@@ -1,14 +1,21 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Send, ImagePlus } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ImagePlus, Send } from 'lucide-react';
 
-export default function ChatInput({ onSendMessage, onSendImage, disabled = false, placeholder = "Describe the issue..." }) {
+export default function ChatInput({
+  onSendMessage,
+  onSendImage,
+  disabled = false,
+  disableText = false,
+  disableImage = false,
+  placeholder = "Describe the issue...",
+}) {
   const [text, setText] = useState('');
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
 
   const handleSend = () => {
     const trimmed = text.trim();
-    if (!trimmed || disabled) return;
+    if (!trimmed || disabled || disableText) return;
     onSendMessage(trimmed);
     setText('');
     if (textareaRef.current) {
@@ -40,30 +47,30 @@ export default function ChatInput({ onSendMessage, onSendImage, disabled = false
     el.style.height = Math.min(el.scrollHeight, 100) + 'px';
   };
 
-  const canSend = text.trim().length > 0 && !disabled;
+  const canSend = text.trim().length > 0 && !disabled && !disableText;
+  const imageDisabled = disabled || disableImage;
 
   return (
     <div className="chat-input-bar">
       <div className="chat-input-inner">
-        {/* Camera / Image button */}
+        {/* Image upload button */}
         <button
           type="button"
           className="chat-input-btn chat-input-btn-camera"
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled}
-          aria-label="Attach photo"
+          disabled={imageDisabled}
+          aria-label="Upload or take a photo"
         >
-          <Camera size={20} />
+          <ImagePlus size={20} />
         </button>
 
         <input
           type="file"
           ref={fileInputRef}
           className="hidden"
-          accept="image/*"
-          capture="environment"
+          accept="image/jpeg,image/png,image/webp"
           onChange={handleFileChange}
-          disabled={disabled}
+          disabled={imageDisabled}
         />
 
         {/* Text input */}
@@ -73,7 +80,7 @@ export default function ChatInput({ onSendMessage, onSendImage, disabled = false
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || disableText}
           rows={1}
         />
 

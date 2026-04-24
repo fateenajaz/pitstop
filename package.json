@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd backend && node server.js",
-    "client": "cd frontend && npm run dev"
+    "client": "cd frontend && npx vite --host"
   },
   "dependencies": {
     "concurrently": "^8.2.2"

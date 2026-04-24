@@ -1,15 +1,17 @@
 import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Camera, AlertTriangle } from 'lucide-react';
+import { motion as Motion } from 'framer-motion';
+import { AlertTriangle, Upload } from 'lucide-react';
 
 export default function EvidenceRequest({ request, onSubmit }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  const inputId = `evidence-upload-${request?.guidance?.targetView || 'generic'}`;
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       onSubmit(e.target.files[0]);
     }
+    e.target.value = '';
   };
 
   const handleDrop = (e) => {
@@ -24,7 +26,7 @@ export default function EvidenceRequest({ request, onSubmit }) {
   };
 
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -66,9 +68,9 @@ export default function EvidenceRequest({ request, onSubmit }) {
         {request.why}
       </div>
 
-      {/* Capture button */}
-      <button
-        onClick={() => fileInputRef.current?.click()}
+      {/* Upload button */}
+      <label
+        htmlFor={inputId}
         onDrop={handleDrop}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
@@ -86,22 +88,23 @@ export default function EvidenceRequest({ request, onSubmit }) {
           justifyContent: 'center',
           gap: 8,
           transition: 'all 0.2s',
-          fontFamily: 'var(--font-body)'
+          fontFamily: 'var(--font-body)',
+          userSelect: 'none',
         }}
       >
-        <Camera size={16} />
-        Take Photo
-      </button>
+        <Upload size={16} />
+        Upload or Take Photo
+      </label>
 
       <input
+        id={inputId}
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept="image/*"
-        capture="environment"
+        accept="image/jpeg,image/png,image/webp"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
-    </motion.div>
+    </Motion.div>
   );
 }

@@ -22,7 +22,7 @@ function loadCars() {
     const saved = localStorage.getItem('pitstop-cars');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) { /* ignore */ }
   return DEFAULT_CARS;
@@ -45,11 +45,25 @@ export default function App() {
     setCars(prev => [...prev, newCar]);
   };
 
+  const handleDeleteCar = (carId) => {
+    setCars(prev => prev.filter(c => c.id !== carId));
+  };
+
+  const handleUpdateCar = (carId, updates) => {
+    setCars(prev => prev.map(c => c.id === carId ? { ...c, ...updates } : c));
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<GaragePage cars={cars} />} />
-      <Route path="/add-car" element={<AddCarPage onAddCar={handleAddCar} />} />
-      <Route path="/car/:id" element={<CarDetailPage cars={cars} />} />
+      <Route path="/" element={
+        <GaragePage cars={cars} onDeleteCar={handleDeleteCar} />
+      } />
+      <Route path="/add-car" element={
+        <AddCarPage onAddCar={handleAddCar} />
+      } />
+      <Route path="/car/:id" element={
+        <CarDetailPage cars={cars} onDeleteCar={handleDeleteCar} onUpdateCar={handleUpdateCar} />
+      } />
     </Routes>
   );
 }
