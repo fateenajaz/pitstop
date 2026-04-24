@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import CarSilhouette from './CarSilhouette';
 import ThreeCarModel from './ThreeCarModel';
 import ThreeCarAssetModel from './ThreeCarAssetModel';
@@ -54,6 +54,9 @@ export default function CarModel({
 
   const assetKey = `${type}:${modelAsset || 'default'}`;
   const hasAssetModel = assetErrorKey !== assetKey && (Boolean(modelAsset) || type === 'sedan' || type === 'suv');
+  const handleAssetError = useCallback(() => {
+    setAssetErrorKey(assetKey);
+  }, [assetKey]);
 
   if (!hasAssetModel && !model3d && !safeSvg) {
     return (
@@ -248,7 +251,7 @@ export default function CarModel({
               rotateX={rotateX}
               guidance={activeGuidance}
               isAlert={isAlert}
-              onError={() => setAssetErrorKey(assetKey)}
+              onError={handleAssetError}
             />
           </div>
         ) : model3d ? (

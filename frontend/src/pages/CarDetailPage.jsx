@@ -100,6 +100,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
   // Data states
   const [garages, setGarages] = useState([]);
   const [caseNotes, setCaseNotes] = useState([]);
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
   const hasHydratedChatRef = useRef(false);
   const sessionPollRef = useRef(null);
   const hasRestoredServerSessionRef = useRef(false);
@@ -127,7 +128,12 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
 
     const restoredMessages = Array.isArray(saved.messages) ? saved.messages : [];
     /* eslint-disable react-hooks/set-state-in-effect */
-    setMessages(restoredMessages);
+    const normalizedMessages =
+      saved.appState === 'awaiting_clarification' && saved.followUpQuestion?.question
+        ? restoredMessages.filter((message) => !(message?.type === 'agent' && message?.content === saved.followUpQuestion.question))
+        : restoredMessages;
+
+    setMessages(normalizedMessages);
     setMainImage(saved.mainImage || null);
     setEvidenceImage(saved.evidenceImage || null);
     setCurrentPhase(saved.currentPhase || null);
@@ -149,6 +155,9 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
       setAppState('awaiting_evidence');
     } else if (saved.appState === 'awaiting_clarification' && saved.followUpQuestion) {
       setAppState('awaiting_clarification');
+    } else if (saved.appState === 'investigating' && saved.sessionId) {
+      setAppState('investigating');
+      setRestoreBanner('Restoring active investigation...');
     } else if (saved.appState === 'complete' && saved.brief) {
       setAppState('complete');
     } else if (restoredMessages.length > 0) {
@@ -218,7 +227,6 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
         case 'phase':
           setCurrentPhase(data.phase);
           setEmittedPhases(prev => new Set(prev).add(data.phase));
-          setMessages(prev => [...prev, { type: 'phase', phase: data.phase, label: data.label }]);
           break;
         case 'phase_update':
           setCurrentPhase(data.phase);
@@ -260,7 +268,6 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
           setFollowUpQuestion(data);
           setEvidenceRequest(null);
           setAppState('awaiting_clarification');
-          setMessages(prev => [...prev, { type: 'agent', content: data.question }]);
           break;
         case 'annotation':
           setAnnotations(prev => [...prev, data]);
@@ -281,7 +288,10 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
             setMessages(prev => [...prev, { type: 'system', text: `Error: ${data.error}` }]);
             setAppState('idle');
             setModelGuidance(null);
+            setSessionId(null);
+            setSessionCursor(0);
           }
+          setIsLiveStreaming(false);
           break;
       }
     } catch (e) {
@@ -351,6 +361,10 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     } else if (session.status === 'streaming') {
       setAppState('investigating');
     } else if (session.status === 'error' && fromRefresh) {
+      if (!session.brief) {
+        setSessionId(null);
+        setSessionCursor(0);
+      }
       setAppState(session.brief ? 'complete' : 'idle');
     }
   };
@@ -395,7 +409,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
       sessionPollRef.current = null;
     }
 
-    if (!car || !sessionId || appState !== 'investigating' || brief) return undefined;
+    if (!car || !sessionId || appState !== 'investigating' || brief || isLiveStreaming) return undefined;
 
     sessionPollRef.current = window.setInterval(async () => {
       try {
@@ -426,10 +440,11 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
         sessionPollRef.current = null;
       }
     };
-  }, [API, appState, brief, car, sessionCursor, sessionId]);
+  }, [API, appState, brief, car, isLiveStreaming, sessionCursor, sessionId]);
 
   const startInvestigation = async (symptomText, file = null, previewUrl = null) => {
     setAppState('investigating');
+    setIsLiveStreaming(true);
     setRestoreBanner('');
     setSessionCursor(0);
     setMainImage(previewUrl);
@@ -468,12 +483,17 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
       console.error("Investigation failed", error);
       setMessages(prev => [...prev, { type: 'system', text: 'Investigation failed. Please try again.' }]);
       setAppState('idle');
+      setSessionId(null);
+      setSessionCursor(0);
+    } finally {
+      setIsLiveStreaming(false);
     }
   };
 
   const submitEvidence = async (file, previewOverride = null) => {
     if (!sessionId) return;
     setAppState('investigating');
+    setIsLiveStreaming(true);
     setRestoreBanner('');
     const preview = previewOverride || await fileToDataUrl(file).catch(() => null);
     setEvidenceImage(preview);
@@ -499,12 +519,17 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     } catch (error) {
       console.error("Evidence submission failed", error);
       setAppState('idle');
+      setSessionId(null);
+      setSessionCursor(0);
+    } finally {
+      setIsLiveStreaming(false);
     }
   };
 
   const submitClarification = async (answerText) => {
     if (!sessionId || !answerText.trim()) return;
     setAppState('investigating');
+    setIsLiveStreaming(true);
     setRestoreBanner('');
     setFollowUpQuestion(null);
     setPhaseStatus('Reviewing the added symptom details.');
@@ -522,6 +547,10 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
       console.error('Clarification submission failed', error);
       setMessages(prev => [...prev, { type: 'system', text: 'Clarification submission failed. Please try again.' }]);
       setAppState('idle');
+      setSessionId(null);
+      setSessionCursor(0);
+    } finally {
+      setIsLiveStreaming(false);
     }
   };
 
@@ -614,156 +643,158 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
 
   return (
     <div className="page-enter" style={{ 
-      minHeight: '100dvh', 
+      height: '100dvh', 
       display: 'flex', 
       flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* ── Top: Car Silhouette Area ── */}
-      <div style={{ 
-        position: 'relative',
-        minHeight: appState === 'idle' ? '42vh' : '28vh',
-        transition: 'min-height 0.5s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0
-      }}>
-        {/* Back button + car name (floating over car) */}
+      <div style={{ position: 'relative', zIndex: 30, flexShrink: 0, background: 'var(--bg-primary)' }}>
+        {/* ── Top: Car Silhouette Area ── */}
         <div style={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 20,
-          padding: '16px 20px',
-          paddingTop: 'calc(16px + var(--safe-top))',
+          position: 'relative',
+          minHeight: appState === 'idle' ? '42vh' : '28vh',
+          transition: 'min-height 0.5s ease',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <button
-            onClick={() => navigate('/')}
-            style={{ 
-              background: 'rgba(255,255,255,0.06)', 
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)', 
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              alignItems: 'center',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-
-          <button
-            onClick={() => setShowNotes(true)}
-            style={{ 
-              background: 'rgba(255,255,255,0.06)', 
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)', 
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              alignItems: 'center',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <FileText size={20} />
-          </button>
-        </div>
-
-        {/* Car silhouette centered */}
-        <div style={{ 
-          flex: 1, 
-          display: 'flex', 
           flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center',
-          paddingTop: 60
+          flexShrink: 0
         }}>
-          <Motion.div
-            layout
-            transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <CarModel 
-              model3d={car.model3d}
-              svgString={car.svgModel}
-              color={car.color || '#3b82f6'} 
-              type={car.type || 'sedan'}
-              size={appState === 'idle' ? 'large' : 'medium'}
-              rotateY={modelAngle.rotateY}
-              rotateX={modelAngle.rotateX}
-              guidance={modelGuidance}
-              phaseLabel={appState === 'idle' ? '' : (currentPhase ? currentPhase.replaceAll('_', ' ') : '')}
-              phaseStatus={appState === 'idle' ? '' : phaseStatus}
-              isAlert={isAlert}
-              showReflection={appState === 'idle'}
-            />
-          </Motion.div>
+          {/* Back button + car name (floating over car) */}
+          <div style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            padding: '16px 20px',
+            paddingTop: 'calc(16px + var(--safe-top))',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <button
+              onClick={() => navigate('/')}
+              style={{ 
+                background: 'rgba(255,255,255,0.06)', 
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-secondary)', 
+                cursor: 'pointer',
+                padding: 8,
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <ArrowLeft size={20} />
+            </button>
 
-          {/* Car name shown when idle */}
-          <AnimatePresence>
-            {appState === 'idle' && (
-              <Motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                style={{ textAlign: 'center', marginTop: 12 }}
-              >
-                <div style={{ 
-                  fontFamily: 'var(--font-heading)', 
-                  fontSize: 22, 
-                  fontWeight: 600,
-                  color: 'var(--text-primary)'
-                }}>
-                  {car.name}
-                </div>
-                <div style={{ 
-                  fontSize: 13, 
-                  color: 'var(--text-tertiary)',
-                  fontFamily: 'var(--font-mono)',
-                  marginTop: 4
-                }}>
-                  {car.label || 'Vehicle'}
-                </div>
-              </Motion.div>
-            )}
-          </AnimatePresence>
+            <button
+              onClick={() => setShowNotes(true)}
+              style={{ 
+                background: 'rgba(255,255,255,0.06)', 
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-secondary)', 
+                cursor: 'pointer',
+                padding: 8,
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <FileText size={20} />
+            </button>
+          </div>
+
+          {/* Car silhouette centered */}
+          <div style={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            justifyContent: 'center',
+            paddingTop: 60
+          }}>
+            <Motion.div
+              layout
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <CarModel 
+                model3d={car.model3d}
+                svgString={car.svgModel}
+                color={car.color || '#3b82f6'} 
+                type={car.type || 'sedan'}
+                size={appState === 'idle' ? 'large' : 'medium'}
+                rotateY={modelAngle.rotateY}
+                rotateX={modelAngle.rotateX}
+                guidance={modelGuidance}
+                phaseLabel={appState === 'idle' ? '' : (currentPhase ? currentPhase.replaceAll('_', ' ') : '')}
+                phaseStatus={appState === 'idle' ? '' : phaseStatus}
+                isAlert={isAlert}
+                showReflection={appState === 'idle'}
+              />
+            </Motion.div>
+
+            {/* Car name shown when idle */}
+            <AnimatePresence>
+              {appState === 'idle' && (
+                <Motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  style={{ textAlign: 'center', marginTop: 12 }}
+                >
+                  <div style={{ 
+                    fontFamily: 'var(--font-heading)', 
+                    fontSize: 22, 
+                    fontWeight: 600,
+                    color: 'var(--text-primary)'
+                  }}>
+                    {car.name}
+                  </div>
+                  <div style={{ 
+                    fontSize: 13, 
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    marginTop: 4
+                  }}>
+                    {car.label || 'Vehicle'}
+                  </div>
+                </Motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Gradient fade into chat area */}
+          <div className="gradient-fade-down" style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 80,
+            pointerEvents: 'none',
+            zIndex: 10
+          }} />
         </div>
 
-        {/* Gradient fade into chat area */}
-        <div className="gradient-fade-down" style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 80,
-          pointerEvents: 'none',
-          zIndex: 10
-        }} />
+        {/* ── Budget bar (sticky when active) ── */}
+        {appState !== 'idle' && (
+          <BudgetMeter 
+            budget={budget} 
+            currentPhase={currentPhase} 
+            emittedPhases={emittedPhases} 
+            phaseStatus={phaseStatus}
+            phaseProgress={phaseProgress}
+            isActive={true} 
+          />
+        )}
       </div>
 
-      {/* ── Budget bar (sticky when active) ── */}
-      {appState !== 'idle' && (
-        <BudgetMeter 
-          budget={budget} 
-          currentPhase={currentPhase} 
-          emittedPhases={emittedPhases} 
-          phaseStatus={phaseStatus}
-          phaseProgress={phaseProgress}
-          isActive={true} 
-        />
-      )}
-
       {/* ── Bottom: Chat Interface ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
         {restoreBanner && (
-          <div style={{ padding: '10px 16px 0' }}>
+          <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
             <div
               style={{
                 display: 'flex',
@@ -793,6 +824,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
           /* Welcome state */
           <div style={{ 
             flex: 1, 
+            minHeight: 0,
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 

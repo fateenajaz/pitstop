@@ -1,0 +1,80 @@
+{
+  "sessionId": "krn4ba",
+  "vehicleId": null,
+  "status": "error",
+  "currentPhase": "ANALYSIS",
+  "phaseStatus": "Reviewing the added symptom details.",
+  "phaseProgress": 0.34,
+  "modelGuidance": null,
+  "evidenceRequest": null,
+  "followUpQuestion": null,
+  "brief": null,
+  "annotations": [],
+  "budget": {
+    "used": 1823,
+    "total": 60000,
+    "remaining": 58177
+  },
+  "events": [
+    {
+      "index": 0,
+      "event": "budget",
+      "data": {
+        "used": 1823,
+        "total": 60000,
+        "remaining": 58177
+      },
+      "timestamp": "2026-04-24T16:33:16.454Z"
+    },
+    {
+      "index": 1,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-24T16:33:16.456Z"
+    },
+    {
+      "index": 2,
+      "event": "follow_up_question",
+      "data": {
+        "question": "Can you describe the sound more specifically - is it a grinding, squealing, clicking, knocking, or humming noise? And does it happen constantly while driving, only when turning, braking, accelerating, or at specific speeds?",
+        "why": "Different sounds indicate different mechanical issues - brake problems sound different from suspension issues or wheel bearing failures"
+      },
+      "timestamp": "2026-04-24T16:33:16.458Z"
+    },
+    {
+      "index": 3,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-24T16:33:41.573Z"
+    },
+    {
+      "index": 4,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-24T16:33:41.575Z"
+    },
+    {
+      "index": 5,
+      "event": "done",
+      "data": {
+        "error": "messages is not iterable"
+      },
+      "timestamp": "2026-04-24T16:33:41.576Z"
+    }
+  ],
+  "eventCount": 6,
+  "createdAt": "2026-04-24T16:33:16.453Z",
+  "updatedAt": "2026-04-24T16:33:41.577Z",
+  "error": "messages is not iterable"
+}

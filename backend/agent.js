@@ -277,6 +277,40 @@ async function getSession(sessionId) {
   return memory.loadInvestigationSession(sessionId);
 }
 
+async function buildFallbackSessionMessages(session) {
+  const history = await memory.loadCaseFile(session.vehicleId);
+  const baseMessages = [
+    {
+      role: 'user',
+      content: [{ type: 'text', text: `Vehicle history:\n${JSON.stringify(history, null, 2)}` }],
+    },
+  ];
+
+  if (session.followUpQuestion) {
+    baseMessages.push({
+      role: 'assistant',
+      content: `\`\`\`follow_up_question\n${JSON.stringify(session.followUpQuestion, null, 2)}\n\`\`\``,
+    });
+  } else if (session.evidenceRequest) {
+    baseMessages.push({
+      role: 'assistant',
+      content: `\`\`\`evidence_request\n${JSON.stringify(session.evidenceRequest, null, 2)}\n\`\`\``,
+    });
+  } else if (typeof session.fullResponse === 'string' && session.fullResponse.trim()) {
+    baseMessages.push({
+      role: 'assistant',
+      content: session.fullResponse,
+    });
+  }
+
+  return baseMessages;
+}
+
+async function getSessionMessages(session) {
+  if (Array.isArray(session?.messages)) return session.messages;
+  return buildFallbackSessionMessages(session);
+}
+
 async function requestClaude(messages, sseEmitter) {
   const parserState = {
     fullText: '',
@@ -358,6 +392,12 @@ async function runInvestigation(vehicleId, sessionId, symptomText, imageBuffer, 
     },
   ];
 
+  await storeSession(sessionId, vehicleId, {
+    messages,
+    totalTokensUsed: 0,
+    fullResponse: '',
+  });
+
   try {
     const { finalMessage, fullResponse } = await requestClaude(messages, sseEmitter);
     const totalTokensUsed = updateBudgetFromMessage(finalMessage, 0, sseEmitter);
@@ -365,8 +405,8 @@ async function runInvestigation(vehicleId, sessionId, symptomText, imageBuffer, 
     const evidenceRequest = parseJsonBlock(fullResponse, 'evidence_request');
     if (evidenceRequest) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('evidence_request', evidenceRequest);
       await storeSession(sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+      sseEmitter.send('evidence_request', evidenceRequest);
       sseEmitter.end();
       return;
     }
@@ -374,8 +414,8 @@ async function runInvestigation(vehicleId, sessionId, symptomText, imageBuffer, 
     const followUpQuestion = parseJsonBlock(fullResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('follow_up_question', followUpQuestion);
       await storeSession(sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+      sseEmitter.send('follow_up_question', followUpQuestion);
       sseEmitter.end();
       return;
     }
@@ -410,10 +450,13 @@ async function resumeInvestigation(sessionId, imageBuffer, imageMimeType, sseEmi
     progress: 0.56,
   });
 
-  const { messages, fullResponse, vehicleId } = session;
+  const hasStoredMessages = Array.isArray(session?.messages);
+  const messages = await getSessionMessages(session);
+  const fullResponse = typeof session.fullResponse === 'string' ? session.fullResponse : '';
+  const { vehicleId } = session;
   const resumedMessages = [
     ...messages,
-    { role: 'assistant', content: fullResponse },
+    ...(hasStoredMessages && fullResponse.trim() ? [{ role: 'assistant', content: fullResponse }] : []),
     {
       role: 'user',
       content: [
@@ -437,12 +480,12 @@ async function resumeInvestigation(sessionId, imageBuffer, imageMimeType, sseEmi
     const evidenceRequest = parseJsonBlock(newResponse, 'evidence_request');
     if (evidenceRequest) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('evidence_request', evidenceRequest);
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,
         fullResponse: newResponse,
       });
+      sseEmitter.send('evidence_request', evidenceRequest);
       sseEmitter.end();
       return;
     }
@@ -450,12 +493,12 @@ async function resumeInvestigation(sessionId, imageBuffer, imageMimeType, sseEmi
     const followUpQuestion = parseJsonBlock(newResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('follow_up_question', followUpQuestion);
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,
         fullResponse: newResponse,
       });
+      sseEmitter.send('follow_up_question', followUpQuestion);
       sseEmitter.end();
       return;
     }
@@ -490,10 +533,13 @@ async function resumeInvestigationWithText(sessionId, answerText, sseEmitter) {
     progress: 0.34,
   });
 
-  const { messages, fullResponse, vehicleId } = session;
+  const hasStoredMessages = Array.isArray(session?.messages);
+  const messages = await getSessionMessages(session);
+  const fullResponse = typeof session.fullResponse === 'string' ? session.fullResponse : '';
+  const { vehicleId } = session;
   const resumedMessages = [
     ...messages,
-    { role: 'assistant', content: fullResponse },
+    ...(hasStoredMessages && fullResponse.trim() ? [{ role: 'assistant', content: fullResponse }] : []),
     {
       role: 'user',
       content: [{ type: 'text', text: answerText }],
@@ -507,12 +553,12 @@ async function resumeInvestigationWithText(sessionId, answerText, sseEmitter) {
     const evidenceRequest = parseJsonBlock(newResponse, 'evidence_request');
     if (evidenceRequest) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('evidence_request', evidenceRequest);
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,
         fullResponse: newResponse,
       });
+      sseEmitter.send('evidence_request', evidenceRequest);
       sseEmitter.end();
       return;
     }
@@ -520,12 +566,12 @@ async function resumeInvestigationWithText(sessionId, answerText, sseEmitter) {
     const followUpQuestion = parseJsonBlock(newResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
-      sseEmitter.send('follow_up_question', followUpQuestion);
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,
         fullResponse: newResponse,
       });
+      sseEmitter.send('follow_up_question', followUpQuestion);
       sseEmitter.end();
       return;
     }

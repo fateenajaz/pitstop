@@ -1,0 +1,104 @@
+{
+  "sessionId": "8e6utm",
+  "vehicleId": null,
+  "status": "awaiting_clarification",
+  "currentPhase": "EVIDENCE_GAP",
+  "phaseStatus": "",
+  "phaseProgress": null,
+  "modelGuidance": null,
+  "evidenceRequest": null,
+  "followUpQuestion": {
+    "question": "What specific problem are you experiencing with your vehicle? For example: unusual noises, warning lights, performance issues, fluid leaks, or handling problems?",
+    "why": "I need to understand what symptoms you're experiencing to begin a proper diagnostic investigation"
+  },
+  "brief": null,
+  "annotations": [],
+  "budget": {
+    "used": 1865,
+    "total": 60000,
+    "remaining": 58135
+  },
+  "events": [
+    {
+      "index": 0,
+      "event": "session_start",
+      "data": {
+        "sessionId": "8e6utm"
+      },
+      "timestamp": "2026-04-24T16:19:38.099Z"
+    },
+    {
+      "index": 1,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-24T16:19:38.101Z"
+    },
+    {
+      "index": 2,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Reviewing the symptom and initial evidence.",
+        "progress": 0.08
+      },
+      "timestamp": "2026-04-24T16:19:38.102Z"
+    },
+    {
+      "index": 3,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Reading symptom description",
+        "progress": 0.1
+      },
+      "timestamp": "2026-04-24T16:19:41.387Z"
+    },
+    {
+      "index": 4,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Requesting symptom clarification",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-24T16:19:42.859Z"
+    },
+    {
+      "index": 5,
+      "event": "budget",
+      "data": {
+        "used": 1865,
+        "total": 60000,
+        "remaining": 58135
+      },
+      "timestamp": "2026-04-24T16:19:45.063Z"
+    },
+    {
+      "index": 6,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-24T16:19:45.066Z"
+    },
+    {
+      "index": 7,
+      "event": "follow_up_question",
+      "data": {
+        "question": "What specific problem are you experiencing with your vehicle? For example: unusual noises, warning lights, performance issues, fluid leaks, or handling problems?",
+        "why": "I need to understand what symptoms you're experiencing to begin a proper diagnostic investigation"
+      },
+      "timestamp": "2026-04-24T16:19:45.069Z"
+    }
+  ],
+  "eventCount": 8,
+  "createdAt": "2026-04-24T16:19:45.063Z",
+  "updatedAt": "2026-04-24T16:19:45.069Z"
+}

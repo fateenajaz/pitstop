@@ -172,8 +172,16 @@ app.post('/api/submit-evidence', upload.single('image'), async (req, res) => {
     return;
   }
 
+  const existingSession = await memory.loadInvestigationSession(sessionId);
+  if (!existingSession) {
+    const sseEmitter = createSseEmitter(res);
+    sseEmitter.send('done', { error: 'Session not found.' });
+    sseEmitter.end();
+    return;
+  }
+
   await memory.saveInvestigationSession(sessionId, {
-    vehicleId: vehicleId || null,
+    vehicleId: vehicleId || existingSession.vehicleId || null,
     status: 'streaming',
     phaseStatus: 'Reviewing the requested evidence.',
     phaseProgress: 0.52,
@@ -204,7 +212,16 @@ app.post('/api/submit-clarification', async (req, res) => {
     return;
   }
 
+  const existingSession = await memory.loadInvestigationSession(sessionId);
+  if (!existingSession) {
+    const sseEmitter = createSseEmitter(res);
+    sseEmitter.send('done', { error: 'Session not found.' });
+    sseEmitter.end();
+    return;
+  }
+
   await memory.saveInvestigationSession(sessionId, {
+    vehicleId: existingSession.vehicleId || null,
     status: 'streaming',
     phaseStatus: 'Reviewing the clarification.',
     phaseProgress: 0.32,

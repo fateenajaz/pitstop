@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 function TypingIndicator() {
   return (
@@ -13,20 +13,9 @@ function TypingIndicator() {
   );
 }
 
-function PhaseIndicator({ phase, label }) {
-  return (
-    <div className="chat-msg-system chat-bubble-enter" style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-      <span className="phase-pill phase-pill-active">
-        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent-blue)', display: 'inline-block' }} />
-        {label || phase}
-      </span>
-    </div>
-  );
-}
-
 function UserMessage({ text, imageUrl }) {
   return (
-    <motion.div 
+    <Motion.div 
       className="chat-msg chat-msg-user"
       initial={{ opacity: 0, y: 16, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -38,13 +27,13 @@ function UserMessage({ text, imageUrl }) {
         </div>
       )}
       {text && <div>{text}</div>}
-    </motion.div>
+    </Motion.div>
   );
 }
 
 function AgentMessage({ children, noPadding = false }) {
   return (
-    <motion.div 
+    <Motion.div 
       className="chat-msg chat-msg-agent"
       style={noPadding ? { padding: 0, background: 'transparent', border: 'none' } : {}}
       initial={{ opacity: 0, y: 16, scale: 0.95 }}
@@ -52,7 +41,7 @@ function AgentMessage({ children, noPadding = false }) {
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
     >
       {children}
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -80,12 +69,9 @@ export default function ChatInterface({ messages, isTyping, children }) {
             case 'agent-raw':
               return <AgentMessage key={i} noPadding>{msg.content}</AgentMessage>;
             
-            case 'phase':
-              return <PhaseIndicator key={i} phase={msg.phase} label={msg.label} />;
-            
             case 'system':
               return (
-                <motion.div
+                <Motion.div
                   key={i}
                   className="chat-msg-system"
                   initial={{ opacity: 0 }}
@@ -93,7 +79,7 @@ export default function ChatInterface({ messages, isTyping, children }) {
                   transition={{ duration: 0.3 }}
                 >
                   {msg.text}
-                </motion.div>
+                </Motion.div>
               );
             
             default:
@@ -112,4 +98,4 @@ export default function ChatInterface({ messages, isTyping, children }) {
   );
 }
 
-export { UserMessage, AgentMessage, PhaseIndicator, TypingIndicator };
+export { UserMessage, AgentMessage, TypingIndicator };

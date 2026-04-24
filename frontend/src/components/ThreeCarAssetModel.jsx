@@ -18,8 +18,8 @@ const MODEL_CONFIG = {
   },
   suv: {
     scaleMultiplier: 1.15,
-    rotationX: -Math.PI / 2,
-    rotationY: 0,
+    rotationX: 0,
+    rotationY: -Math.PI / 4,
     rotationZ: 0,
     camera: { x: 5.4, y: 3.1, z: 5.4 },
     lookAt: { x: 0, y: 0.7, z: 0 },
@@ -154,6 +154,7 @@ export default function ThreeCarAssetModel({
   const rotationRef = useRef({ rotateX, rotateY });
   const modelLoadedRef = useRef(false);
   const guidanceRef = useRef(guidance);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
     rotationRef.current = { rotateX, rotateY };
@@ -164,13 +165,17 @@ export default function ThreeCarAssetModel({
   }, [guidance]);
 
   useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const modelUrl = inferModelUrl(type, modelAsset);
     if (!canvas || !modelUrl) return undefined;
 
     const loader = createLoader(modelUrl);
     if (!loader) {
-      onError?.(new Error(`Unsupported model asset: ${modelUrl}`));
+      onErrorRef.current?.(new Error(`Unsupported model asset: ${modelUrl}`));
       return undefined;
     }
 
@@ -251,7 +256,7 @@ export default function ThreeCarAssetModel({
       try {
         renderer.render(scene, camera);
       } catch (error) {
-        if (!disposed) onError?.(error);
+        if (!disposed) onErrorRef.current?.(error);
       }
       animationFrameId = window.requestAnimationFrame(renderFrame);
     };
@@ -292,12 +297,12 @@ export default function ThreeCarAssetModel({
           root.add(object);
           modelLoadedRef.current = true;
         } catch (error) {
-          if (!disposed) onError?.(error);
+          if (!disposed) onErrorRef.current?.(error);
         }
       },
       undefined,
       (error) => {
-        if (!disposed) onError?.(error);
+        if (!disposed) onErrorRef.current?.(error);
       },
     );
 
@@ -316,7 +321,7 @@ export default function ThreeCarAssetModel({
         }
       });
     };
-  }, [height, isAlert, modelAsset, onError, type, width]);
+  }, [height, isAlert, modelAsset, type, width]);
 
   return (
     <canvas
