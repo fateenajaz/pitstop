@@ -1,5 +1,7 @@
 node_modules
 .env
+.env.local
+.convex
 backend/.env
 frontend/.env
 backend/case-files/

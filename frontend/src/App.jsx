@@ -5,24 +5,31 @@ import AddCarPage from './pages/AddCarPage';
 import CarDetailPage from './pages/CarDetailPage';
 import './App.css';
 
-const DEFAULT_CARS = [
-  {
-    id: 'demo-vehicle-1',
-    name: 'Daily Driver',
-    label: '2019 Toyota Camry',
-    type: 'sedan',
-    color: '#3b82f6',
-    photos: [],
-    createdAt: new Date().toISOString(),
-  }
-];
+const DEFAULT_CARS = [{
+  id: 'default-vehicle-1',
+  name: 'Daily Driver',
+  label: '2019 Toyota Camry',
+  type: 'sedan',
+  color: '#3b82f6',
+  photos: [],
+  createdAt: new Date().toISOString(),
+}];
+
+const REMOVED_SCRIPTED_CAR_IDS = new Set(['demo']);
+
+function removeScriptedCars(cars) {
+  return Array.isArray(cars) ? cars.filter((car) => !REMOVED_SCRIPTED_CAR_IDS.has(car?.id)) : [];
+}
 
 function loadCars() {
   try {
     const saved = localStorage.getItem('pitstop-cars');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        const cars = removeScriptedCars(parsed);
+        return cars.length > 0 ? cars : DEFAULT_CARS;
+      }
     }
   } catch (e) { /* ignore */ }
   return DEFAULT_CARS;

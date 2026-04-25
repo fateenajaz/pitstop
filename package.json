@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd backend && node server.js",
-    "client": "cd frontend && npx vite --host"
+    "client": "cd frontend && npx vite --host",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "build:frontend": "cd frontend && npm run build"
   },
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "convex": "^1.36.1"
   }
 }

@@ -33,27 +33,6 @@ Pit Stop gives drivers a simple flow:
 
 The app is optimized for real driver behavior: vague symptoms, partial information, bad first photos, and the need for clear next steps.
 
-## Demo Flow
-
-Try this path:
-
-```text
-User: i hear a screeching sound while driving
-Pit Stop: Does it happen when braking or even when not braking?
-User: yes it's while braking
-Pit Stop: What type of sound is it?
-User: it's a grinding sound
-Pit Stop: Requests a close-up brake rotor/caliper photo and highlights the wheel/brake hotspot
-```
-
-After the image is reviewed, Pit Stop can produce a brief such as:
-
-- Primary fault: worn brake pads / rotor scoring
-- Urgency: high or critical
-- Explanation: grinding while braking can indicate metal-on-metal contact
-- Recommended action: stop driving except for immediate repair or arrange a tow
-- Case note: saved to the vehicle history
-
 ## Core Features
 
 - **Autonomous diagnostic loop**: symptom intake, clarification, evidence request, analysis, verification, and final brief are managed by the model.
@@ -85,6 +64,49 @@ Claude Opus 4.7
   Diagnostic brief JSON
   Follow-up answers
 ```
+
+## Deployment
+
+Production is split across Vercel and Convex:
+
+```text
+Vercel
+  Builds frontend/
+  Serves the React app from frontend/dist
+  Uses VITE_API_URL=https://kindhearted-mongoose-684.convex.site
+
+Convex
+  Serves HTTP actions at /api/*
+  Stores vehicle case notes and investigation sessions
+  Calls Anthropic with server-side environment variables
+  Applies per-IP rate limits before API-heavy routes
+```
+
+Use the `.convex.site` URL for HTTP actions. The `.convex.cloud` URL is the Convex deployment/client URL, but browser `fetch()` calls to the custom backend routes should point at:
+
+```text
+https://kindhearted-mongoose-684.convex.site
+```
+
+Required Convex environment variables:
+
+```text
+ANTHROPIC_API_KEY
+ANTHROPIC_INVESTIGATION_MODEL
+ANTHROPIC_FOLLOW_UP_MODEL
+CLIENT_ORIGIN
+RATE_LIMIT_WINDOW_MS
+RATE_LIMIT_MAX_REQUESTS
+AI_RATE_LIMIT_MAX_REQUESTS
+```
+
+Required Vercel environment variable:
+
+```text
+VITE_API_URL=https://kindhearted-mongoose-684.convex.site
+```
+
+Local Express development is still available with `npm run dev`; Convex production routes live in `convex/http.ts`.
 
 ### Event Flow
 
