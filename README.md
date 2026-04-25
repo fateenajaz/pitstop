@@ -182,31 +182,7 @@ The app starts:
 
 - Backend: `http://localhost:3001`
 - Frontend: Vite will print the local URL, usually `http://localhost:5173`
-
-## Why This Is a Strong Hackathon Project
-
-Pit Stop demonstrates Opus 4.7 as an agentic product primitive, not just a better response generator.
-
-The model is responsible for judgment:
-
-- What facts are already known?
-- What question would reduce uncertainty?
-- Is the evidence good enough?
-- Which physical subsystem should the user photograph?
-- What fault best explains the combined symptoms and image?
-- What should the driver do next?
-
-The application is responsible for productization:
-
-- Clean mobile-first UX
-- 3D visual guidance
-- Persistent cases
-- Streaming investigation state
-- Structured diagnostic artifacts
-- Follow-up repair guidance
-
-That separation is the point: Opus 4.7 provides the expert investigation behavior, and Pit Stop turns it into something a normal driver could actually use.
-
+- 
 ## Safety Note
 
 Pit Stop is a diagnostic assistant, not a replacement for a certified mechanic. For brake, steering, tire, overheating, smoke, fuel, or electrical burning issues, users should treat high-urgency recommendations conservatively and seek professional repair before driving.
