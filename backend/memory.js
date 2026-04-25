@@ -3,6 +3,19 @@ const path = require('path');
 
 const CASE_DIR = path.join(__dirname, 'case-files');
 const SESSION_DIR = path.join(__dirname, 'session-files');
+const sessionMutationQueues = new Map();
+
+function enqueueSessionMutation(sessionId, task) {
+  const previous = sessionMutationQueues.get(sessionId) || Promise.resolve();
+  const next = previous.catch(() => {}).then(task);
+  sessionMutationQueues.set(sessionId, next);
+  next.finally(() => {
+    if (sessionMutationQueues.get(sessionId) === next) {
+      sessionMutationQueues.delete(sessionId);
+    }
+  });
+  return next;
+}
 
 async function readJsonFile(filePath, fallback) {
   try {
@@ -51,37 +64,39 @@ async function loadInvestigationSession(sessionId) {
 async function saveInvestigationSession(sessionId, patch) {
   if (!sessionId) return null;
 
-  const current = (await loadInvestigationSession(sessionId)) || {
-    sessionId,
-    vehicleId: null,
-    status: 'idle',
-    currentPhase: null,
-    phaseStatus: '',
-    phaseProgress: null,
-    modelGuidance: null,
-    evidenceRequest: null,
-    followUpQuestion: null,
-    brief: null,
-    annotations: [],
-    budget: null,
-    events: [],
-    eventCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  return enqueueSessionMutation(sessionId, async () => {
+    const current = (await loadInvestigationSession(sessionId)) || {
+      sessionId,
+      vehicleId: null,
+      status: 'idle',
+      currentPhase: null,
+      phaseStatus: '',
+      phaseProgress: null,
+      modelGuidance: null,
+      evidenceRequest: null,
+      followUpQuestion: null,
+      brief: null,
+      annotations: [],
+      budget: null,
+      events: [],
+      eventCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-  const next = {
-    ...current,
-    ...patch,
-    updatedAt: new Date().toISOString(),
-  };
+    const next = {
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
 
-  if (!Array.isArray(next.events)) next.events = [];
-  if (!Array.isArray(next.annotations)) next.annotations = [];
-  if (typeof next.eventCount !== 'number') next.eventCount = next.events.length;
+    if (!Array.isArray(next.events)) next.events = [];
+    if (!Array.isArray(next.annotations)) next.annotations = [];
+    if (typeof next.eventCount !== 'number') next.eventCount = next.events.length;
 
-  await writeJsonFile(getSessionFilePath(sessionId), next);
-  return next;
+    await writeJsonFile(getSessionFilePath(sessionId), next);
+    return next;
+  });
 }
 
 async function appendInvestigationEvent(sessionId, event, data) {

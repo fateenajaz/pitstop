@@ -75,15 +75,68 @@ export default function CarModel({
   const glowColor = isAlert ? 'rgba(239,68,68,0.25)' : `${color}22`;
   const wrapperClassName = isAnimated && rotateY === 0 && rotateX === 0 ? 'animate-float' : '';
   const activeGuidance = guidance && typeof guidance === 'object' ? guidance : null;
-  const targetView = activeGuidance?.targetView || '';
+  const hotspotScreenPositions = {
+    engine_bay: { left: '58%', top: '34%' },
+    battery_area: { left: '62%', top: '32%' },
+    coolant_reservoir: { left: '55%', top: '31%' },
+    oil_dipstick: { left: '57%', top: '35%' },
+    engine_oil_cap: { left: '56%', top: '30%' },
+    air_filter_box: { left: '64%', top: '37%' },
+    radiator_front: { left: '75%', top: '48%' },
+    front_bumper: { left: '79%', top: '55%' },
+    rear_bumper: { left: '21%', top: '55%' },
+    left_body_panel: { left: '48%', top: '51%' },
+    right_body_panel: { left: '52%', top: '51%' },
+    driver_door: { left: '50%', top: '46%' },
+    passenger_door: { left: '50%', top: '46%' },
+    windshield: { left: '62%', top: '26%' },
+    roof_center: { left: '50%', top: '18%' },
+    trunk_area: { left: '27%', top: '42%' },
+    exhaust_rear: { left: '17%', top: '62%' },
+    underbody_front: { left: '65%', top: '76%' },
+    underbody_mid: { left: '50%', top: '78%' },
+    underbody_rear: { left: '35%', top: '76%' },
+    front_left_tire: { left: '70%', top: '66%' },
+    front_right_tire: { left: '70%', top: '66%' },
+    rear_left_tire: { left: '31%', top: '66%' },
+    rear_right_tire: { left: '31%', top: '66%' },
+    front_left_brake: { left: '70%', top: '65%' },
+    front_right_brake: { left: '70%', top: '65%' },
+    rear_left_brake: { left: '31%', top: '65%' },
+    rear_right_brake: { left: '31%', top: '65%' },
+    front_left_suspension: { left: '68%', top: '58%' },
+    front_right_suspension: { left: '68%', top: '58%' },
+    rear_left_suspension: { left: '33%', top: '58%' },
+    rear_right_suspension: { left: '33%', top: '58%' },
+  };
+  const viewScreenPositions = {
+    front: { left: '76%', top: '50%' },
+    rear: { left: '24%', top: '50%' },
+    left: { left: '50%', top: '48%' },
+    right: { left: '50%', top: '48%' },
+    top: { left: '50%', top: '20%' },
+    underbody: { left: '50%', top: '78%' },
+    wheel_closeup: { left: '70%', top: '65%' },
+    front_left: { left: '70%', top: '64%' },
+    front_right: { left: '70%', top: '64%' },
+    rear_left: { left: '31%', top: '64%' },
+    rear_right: { left: '31%', top: '64%' },
+  };
+  const activeScreenHotspot =
+    hotspotScreenPositions[activeGuidance?.hotspotId] || viewScreenPositions[activeGuidance?.targetView] || null;
 
-  const markerStyle = (isActive, baseStyle) => ({
+  const markerStyle = (baseStyle) => ({
     position: 'absolute',
     borderRadius: 999,
-    border: `1px solid ${isActive ? 'rgba(96,165,250,0.65)' : 'rgba(255,255,255,0.08)'}`,
-    background: isActive ? 'rgba(59,130,246,0.16)' : 'rgba(255,255,255,0.03)',
-    boxShadow: isActive ? '0 0 18px rgba(59,130,246,0.28)' : 'none',
+    width: 16,
+    height: 16,
+    border: '2px solid rgba(147,197,253,0.92)',
+    background: 'rgba(59,130,246,0.7)',
+    boxShadow: '0 0 0 8px rgba(59,130,246,0.14), 0 0 24px rgba(59,130,246,0.38)',
     transition: 'all 0.35s ease',
+    zIndex: 4,
+    pointerEvents: 'none',
+    transform: 'translate(-50%, -50%)',
     ...baseStyle,
   });
 
@@ -138,49 +191,6 @@ export default function CarModel({
         </div>
       )}
 
-      <div
-        style={{
-          position: 'absolute',
-          top: phaseLabel || phaseStatus ? 46 : 6,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 3,
-          display: activeGuidance ? 'flex' : 'none',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-          pointerEvents: 'none',
-        }}
-      >
-        {activeGuidance?.headline && (
-          <div
-            style={{
-              padding: '6px 10px',
-              borderRadius: 999,
-              background: 'rgba(15,23,42,0.78)',
-              border: '1px solid rgba(96,165,250,0.28)',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {activeGuidance.headline}
-          </div>
-        )}
-        {activeGuidance?.captureHint && (
-          <div
-            style={{
-              fontSize: 11,
-              color: 'var(--text-tertiary)',
-              textAlign: 'center',
-              maxWidth: Math.round(cfg.width * 0.9),
-            }}
-          >
-            {activeGuidance.captureHint}
-          </div>
-        )}
-      </div>
-
       {/* 3D rotation wrapper */}
       <div
         style={{
@@ -194,45 +204,7 @@ export default function CarModel({
           justifyContent: 'center',
         }}
       >
-        {activeGuidance && (
-          <>
-            <div style={markerStyle(targetView === 'front' || targetView === 'front_left' || targetView === 'front_right', {
-              left: 4,
-              top: '50%',
-              width: 22,
-              height: 54,
-              transform: 'translateY(-50%)',
-            })} />
-            <div style={markerStyle(targetView === 'rear' || targetView === 'rear_left' || targetView === 'rear_right', {
-              right: 4,
-              top: '50%',
-              width: 22,
-              height: 54,
-              transform: 'translateY(-50%)',
-            })} />
-            <div style={markerStyle(targetView === 'top', {
-              left: '50%',
-              top: 4,
-              width: 110,
-              height: 18,
-              transform: 'translateX(-50%)',
-            })} />
-            <div style={markerStyle(targetView === 'underbody', {
-              left: '50%',
-              bottom: 2,
-              width: 118,
-              height: 16,
-              transform: 'translateX(-50%)',
-            })} />
-            <div style={markerStyle(targetView === 'left' || targetView === 'right' || targetView === 'wheel_closeup', {
-              left: '50%',
-              top: '50%',
-              width: cfg.width * 0.7,
-              height: cfg.height * 0.45,
-              transform: 'translate(-50%, -50%)',
-            })} />
-          </>
-        )}
+        {activeScreenHotspot && <div style={markerStyle(activeScreenHotspot)} />}
 
         {hasAssetModel ? (
           <div
@@ -287,6 +259,49 @@ export default function CarModel({
           />
         )}
       </div>
+
+      {activeGuidance && (activeGuidance.headline || activeGuidance.captureHint) && (
+        <div
+          style={{
+            marginTop: 6,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 3,
+            maxWidth: Math.round(cfg.width * 0.96),
+            pointerEvents: 'none',
+          }}
+        >
+          {activeGuidance.headline && (
+            <div
+              style={{
+                padding: '5px 10px',
+                borderRadius: 999,
+                background: 'rgba(15,23,42,0.76)',
+                border: '1px solid rgba(96,165,250,0.28)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                lineHeight: 1.2,
+                textAlign: 'center',
+              }}
+            >
+              {activeGuidance.headline}
+            </div>
+          )}
+          {activeGuidance.captureHint && (
+            <div
+              style={{
+                fontSize: 11,
+                lineHeight: 1.25,
+                color: 'var(--text-tertiary)',
+                textAlign: 'center',
+              }}
+            >
+              {activeGuidance.captureHint}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Ground shadow */}
       {showGlow && (

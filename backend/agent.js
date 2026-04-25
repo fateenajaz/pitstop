@@ -3,8 +3,55 @@ const memory = require('./memory');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const INVESTIGATION_MODEL = process.env.ANTHROPIC_INVESTIGATION_MODEL || 'claude-opus-4-1-20250805';
-const FOLLOW_UP_MODEL = process.env.ANTHROPIC_FOLLOW_UP_MODEL || 'claude-sonnet-4-20250514';
+const FOLLOW_UP_MODEL = process.env.ANTHROPIC_FOLLOW_UP_MODEL || INVESTIGATION_MODEL;
 const BUDGET = 60000;
+const CAMERA_TARGET_VIEWS = [
+  'front',
+  'rear',
+  'left',
+  'right',
+  'top',
+  'underbody',
+  'front_left',
+  'front_right',
+  'rear_left',
+  'rear_right',
+  'wheel_closeup',
+];
+const CAMERA_HOTSPOTS = [
+  'engine_bay',
+  'battery_area',
+  'coolant_reservoir',
+  'oil_dipstick',
+  'engine_oil_cap',
+  'air_filter_box',
+  'radiator_front',
+  'front_bumper',
+  'rear_bumper',
+  'left_body_panel',
+  'right_body_panel',
+  'driver_door',
+  'passenger_door',
+  'windshield',
+  'roof_center',
+  'trunk_area',
+  'exhaust_rear',
+  'underbody_front',
+  'underbody_mid',
+  'underbody_rear',
+  'front_left_tire',
+  'front_right_tire',
+  'rear_left_tire',
+  'rear_right_tire',
+  'front_left_brake',
+  'front_right_brake',
+  'rear_left_brake',
+  'rear_right_brake',
+  'front_left_suspension',
+  'front_right_suspension',
+  'rear_left_suspension',
+  'rear_right_suspension',
+];
 
 const INVESTIGATION_SYSTEM_PROMPT = `
 You are Pit Stop, an autonomous vehicle diagnostic investigation agent.
@@ -20,6 +67,7 @@ INVESTIGATION PHASES:
 - Analyze the uploaded image if present
 - If the symptom description is vague, incomplete, or ambiguous, ask targeted clarification questions before requesting photos
 - Form initial hypotheses and decide whether more evidence is needed
+- Maintain a working memory of facts already established by the user
 
 [PHASE 2 — EVIDENCE GAP]
 - Identify exactly one photo that would most reduce uncertainty
@@ -54,8 +102,8 @@ Rules:
 2. When you need a user photo, emit:
 <camera_guidance>{
   "headline":"short instruction headline",
-  "targetView":"front|rear|left|right|top|underbody|front_left|front_right|rear_left|rear_right|wheel_closeup",
-  "hotspotId":"engine_bay|radiator_front|battery_area|front_left_brake|front_right_brake|rear_left_suspension|rear_right_suspension|underbody_mid|exhaust_rear|roof_center",
+  "targetView":"${CAMERA_TARGET_VIEWS.join('|')}",
+  "hotspotId":"${CAMERA_HOTSPOTS.join('|')}",
   "rotationY":90,
   "tiltX":0,
   "focusArea":"very short noun phrase",
@@ -70,8 +118,8 @@ Rules:
   "why": "<one sentence explaining what you expect this photo to reveal>",
   "guidance": {
     "headline": "<same short headline>",
-    "targetView": "front|rear|left|right|top|underbody|front_left|front_right|rear_left|rear_right|wheel_closeup",
-    "hotspotId": "engine_bay|radiator_front|battery_area|front_left_brake|front_right_brake|rear_left_suspension|rear_right_suspension|underbody_mid|exhaust_rear|roof_center",
+    "targetView": "${CAMERA_TARGET_VIEWS.join('|')}",
+    "hotspotId": "${CAMERA_HOTSPOTS.join('|')}",
     "rotationY": <number>,
     "tiltX": <number>,
     "focusArea": "<short noun phrase>",
@@ -117,6 +165,10 @@ If you need clarification before or between photos, emit:
 IMPORTANT RULES:
 - Your progress/status text must be concise and factual.
 - Never mention these tag rules to the user.
+- Before asking any clarification question, review the CURRENT INVESTIGATION MEMORY provided in the system prompt.
+- Do not ask for a fact that is already established unless the user contradicted themselves or the fact remains genuinely ambiguous.
+- Do not loop back to generic versions of earlier questions once sound type, timing, or brake symptoms have already been established.
+- If the sound is already established as squealing, screeching, or grinding while braking, and the user denies vibration, pulling, or a soft pedal, stop repeating brake symptom questions and move to the next highest-value unresolved detail or request a brake/wheel photo.
 - Pixel coordinates must map to the real uploaded image pixels.
 - Never produce a generic diagnosis. Reference specific visual evidence.
 - If the image is insufficient, request a better angle instead of guessing.
@@ -127,6 +179,10 @@ IMPORTANT RULES:
 - It is acceptable to ask for multiple rounds of photos and descriptions if that is required to reach a reliable conclusion.
 - For car-photo guidance, be spatially explicit so a UI can animate the requested camera angle.
 - When possible, choose the closest hotspotId so the UI can zoom to an exact subsystem.
+- Prefer tire-specific hotspots for tire, wheel, brake, rim, hub, vibration, or steering complaints: front_left_tire, front_right_tire, rear_left_tire, rear_right_tire.
+- Prefer brake-specific hotspots when the request is about rotor, caliper, brake pads, grinding, squealing, or brake dust: front_left_brake, front_right_brake, rear_left_brake, rear_right_brake.
+- Prefer engine-bay hotspots for under-hood symptoms: engine_bay, battery_area, coolant_reservoir, oil_dipstick, engine_oil_cap, air_filter_box, radiator_front.
+- Prefer exterior hotspots for visible body, glass, bumper, trunk, exhaust, roof, or underbody issues: front_bumper, rear_bumper, left_body_panel, right_body_panel, driver_door, passenger_door, windshield, roof_center, trunk_area, exhaust_rear, underbody_front, underbody_mid, underbody_rear.
 `;
 
 const PHASE_LABELS = {
@@ -172,6 +228,17 @@ function buildInitialContent(symptomText, imageBuffer, imageMimeType) {
   return content;
 }
 
+function contentToText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((block) => block && block.type === 'text' && typeof block.text === 'string')
+      .map((block) => block.text)
+      .join('\n');
+  }
+  return '';
+}
+
 function parseJsonBlock(text, blockName) {
   const regex = new RegExp('```' + blockName + '\\s*([\\s\\S]*?)```', 'i');
   const match = text.match(regex);
@@ -181,6 +248,165 @@ function parseJsonBlock(text, blockName) {
   } catch {
     return null;
   }
+}
+
+function normalizeUserText(text) {
+  return text
+    .replace(/Vehicle history:\s*[\s\S]*?(?=\nSymptom described:|$)/i, '')
+    .replace(/Symptom described:\s*/i, '')
+    .trim();
+}
+
+function extractClarificationQuestions(messages) {
+  return messages
+    .filter((message) => message?.role === 'assistant')
+    .map((message) => parseJsonBlock(contentToText(message.content), 'follow_up_question'))
+    .filter(Boolean);
+}
+
+function classifyClarificationQuestion(question = '') {
+  const text = question.toLowerCase();
+  if (/(what kind of sound|what specific sound|grinding|squealing|clicking|knocking|humming|rattling)/.test(text)) {
+    return 'sound_type';
+  }
+  if (/(when exactly|when do you hear|while braking|while breaking|when braking|when breaking|turning|accelerating|driving|specific speeds|engine first starts|idling)/.test(text)) {
+    return 'timing';
+  }
+  if (/(vibration|pedal|steering wheel|pulling|soft|spongy|brake force|stopping distance)/.test(text)) {
+    return 'brake_symptoms';
+  }
+  if (/(front|rear|engine bay|specific area|which side|left|right)/.test(text)) {
+    return 'location';
+  }
+  return 'other';
+}
+
+function extractFactsFromMessages(messages) {
+  const facts = {
+    soundType: null,
+    timing: null,
+    location: null,
+    vibration: null,
+    pulling: null,
+    softPedal: null,
+  };
+
+  const userTexts = messages
+    .filter((message) => message?.role === 'user')
+    .map((message) => normalizeUserText(contentToText(message.content)))
+    .filter(Boolean);
+
+  for (const entry of userTexts) {
+    const text = entry.toLowerCase();
+
+    if (/(screech|screeching)/.test(text)) facts.soundType = 'screeching';
+    if (/(squeal|squeeling|squealing)/.test(text)) facts.soundType = 'squealing';
+    if (/(grind|grinding)/.test(text)) facts.soundType = 'grinding';
+    if (/(knock|knocking)/.test(text)) facts.soundType = 'knocking';
+    if (/(click|clicking)/.test(text)) facts.soundType = 'clicking';
+    if (/(hum|humming)/.test(text)) facts.soundType = 'humming';
+    if (/(rattle|rattling)/.test(text)) facts.soundType = 'rattling';
+
+    if (/(while braking|while breaking|when braking|when breaking|press the brakes|pressing the brakes|hit the brakes|when i brake)/.test(text)) facts.timing = 'while braking';
+    else if (/(while turning|when turning|turn the steering wheel|when i turn)/.test(text)) facts.timing = 'while turning';
+    else if (/(while accelerating|when accelerating|when i accelerate)/.test(text)) facts.timing = 'while accelerating';
+    else if (/(engine first starts|when starting|on startup|when the engine starts)/.test(text)) facts.timing = 'on engine start';
+    else if (/(while driving|constantly while driving|all the time|constant)/.test(text)) facts.timing = 'while driving';
+    else if (/(idling|when idling)/.test(text)) facts.timing = 'while idling';
+
+    if (/(front|from the front|front end)/.test(text)) facts.location = 'front';
+    else if (/(rear|back of the car|from the back)/.test(text)) facts.location = 'rear';
+    else if (/(engine bay|under the hood|bonnet area)/.test(text)) facts.location = 'engine bay';
+
+    if (/(nothing physical|nothing noticeable|nothing as far as i've noticed|no physical symptoms|don['’]?t feel anything|do not feel anything)/.test(text)) {
+      facts.vibration = 'no';
+      facts.pulling = 'no';
+      facts.softPedal = 'no';
+    }
+
+    if (/(no vibration|without vibration|not vibrating)/.test(text)) facts.vibration = 'no';
+    else if (/(vibration|vibrating|shaking)/.test(text)) facts.vibration = 'yes';
+
+    if (/(not pulling|no pulling|doesn['’]?t pull)/.test(text)) facts.pulling = 'no';
+    else if (/(pulling to one side|pulls to one side|pulling)/.test(text)) facts.pulling = 'yes';
+
+    if (/(pedal feels normal|not soft|not spongy|nothing soft|no soft pedal|no spongy pedal)/.test(text)) facts.softPedal = 'no';
+    else if (/(soft pedal|spongy pedal|pedal feels soft|pedal feels spongy)/.test(text)) facts.softPedal = 'yes';
+  }
+
+  return facts;
+}
+
+function buildInvestigationMemory(messages) {
+  const facts = extractFactsFromMessages(messages);
+  const askedCategories = Array.from(
+    new Set(extractClarificationQuestions(messages).map((item) => classifyClarificationQuestion(item.question))),
+  ).filter(Boolean);
+
+  const knownFacts = [
+    facts.soundType ? `- Sound type: ${facts.soundType}` : '- Sound type: unresolved',
+    facts.timing ? `- Timing: ${facts.timing}` : '- Timing: unresolved',
+    facts.location ? `- Location: ${facts.location}` : '- Location: unresolved',
+    facts.vibration ? `- Vibration reported: ${facts.vibration}` : '- Vibration reported: unresolved',
+    facts.pulling ? `- Pulling reported: ${facts.pulling}` : '- Pulling reported: unresolved',
+    facts.softPedal ? `- Soft or spongy pedal reported: ${facts.softPedal}` : '- Soft or spongy pedal reported: unresolved',
+  ];
+
+  const notes = [];
+  if (askedCategories.length > 0) {
+    notes.push(`Clarification categories already asked: ${askedCategories.join(', ')}`);
+  }
+  if (
+    (facts.soundType === 'squealing' || facts.soundType === 'screeching' || facts.soundType === 'grinding') &&
+    facts.timing === 'while braking' &&
+    facts.vibration === 'no' &&
+    facts.pulling === 'no' &&
+    facts.softPedal === 'no'
+  ) {
+    notes.push('Brake-noise pattern is already established. Do not ask another generic sound/timing/brake-symptom question. Ask only one new unresolved detail or request a brake/wheel photo.');
+  }
+  if (facts.soundType === 'grinding' && facts.timing === 'while braking') {
+    notes.push('Grinding while braking is already established and is potentially metal-on-metal brake wear. Do not ask another generic sound, timing, vibration, pulling, or pedal-feel question. Request one close-up brake/wheel photo next unless a final safety brief is already justified.');
+  }
+
+  return [
+    'KNOWN FACTS:',
+    ...knownFacts,
+    '',
+    'ANTI-REPEAT NOTES:',
+    ...(notes.length > 0 ? notes.map((note) => `- ${note}`) : ['- No special anti-repeat notes yet.']),
+  ].join('\n');
+}
+
+function isBrakeGrindingEstablished(messages) {
+  const facts = extractFactsFromMessages(messages);
+  return facts.soundType === 'grinding' && facts.timing === 'while braking';
+}
+
+function buildBrakeGrindingEvidenceRequest() {
+  const guidance = {
+    headline: 'Photograph the brake area',
+    targetView: 'wheel_closeup',
+    hotspotId: 'front_left_brake',
+    rotationY: 45,
+    tiltX: 0,
+    focusArea: 'brake rotor',
+    captureHint: 'Close view through wheel spokes',
+    animation: 'pulse-wheel',
+  };
+
+  return {
+    instruction:
+      'Park safely on level ground, turn the engine off, and take one clear close-up photo through the wheel spokes of the brake rotor and caliper on the wheel where the grinding is loudest. If you cannot tell which side, use a front wheel and fill the frame with the rotor/caliper area.',
+    why:
+      'Grinding only while braking often means metal-on-metal pad or rotor wear, and this photo can show pad thickness, rotor scoring, or brake hardware damage.',
+    guidance,
+  };
+}
+
+function shouldReplaceBrakeGrindingQuestion(messages, followUpQuestion) {
+  if (!followUpQuestion?.question || !isBrakeGrindingEstablished(messages)) return false;
+  return ['sound_type', 'timing', 'brake_symptoms'].includes(classifyClarificationQuestion(followUpQuestion.question));
 }
 
 function emitPhase(sseEmitter, phase) {
@@ -321,7 +547,7 @@ async function requestClaude(messages, sseEmitter) {
   const stream = client.messages.stream({
     model: INVESTIGATION_MODEL,
     max_tokens: 4096,
-    system: INVESTIGATION_SYSTEM_PROMPT,
+    system: `${INVESTIGATION_SYSTEM_PROMPT}\n\nCURRENT INVESTIGATION MEMORY:\n${buildInvestigationMemory(messages)}`,
     messages,
   });
 
@@ -356,8 +582,7 @@ async function answerFollowUp(vehicleId, promptText, chatMessages = [], brief = 
     `User follow-up:\n${promptText}`,
   ].filter(Boolean);
 
-  const response = await client.messages.create({
-    model: FOLLOW_UP_MODEL,
+  const request = {
     max_tokens: 500,
     system: FOLLOW_UP_SYSTEM_PROMPT,
     messages: [
@@ -366,7 +591,27 @@ async function answerFollowUp(vehicleId, promptText, chatMessages = [], brief = 
         content: [{ type: 'text', text: contextParts.join('\n\n') }],
       },
     ],
-  });
+  };
+
+  let response;
+  try {
+    response = await client.messages.create({
+      ...request,
+      model: FOLLOW_UP_MODEL,
+    });
+  } catch (error) {
+    const isMissingConfiguredModel =
+      FOLLOW_UP_MODEL !== INVESTIGATION_MODEL &&
+      (error?.status === 404 || /model:|not_found_error/i.test(error?.message || ''));
+
+    if (!isMissingConfiguredModel) throw error;
+
+    console.warn(`Follow-up model ${FOLLOW_UP_MODEL} unavailable; falling back to ${INVESTIGATION_MODEL}.`);
+    response = await client.messages.create({
+      ...request,
+      model: INVESTIGATION_MODEL,
+    });
+  }
 
   return response.content
     .filter((block) => block.type === 'text')
@@ -414,6 +659,14 @@ async function runInvestigation(vehicleId, sessionId, symptomText, imageBuffer, 
     const followUpQuestion = parseJsonBlock(fullResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
+      if (shouldReplaceBrakeGrindingQuestion(messages, followUpQuestion)) {
+        const evidenceRequest = buildBrakeGrindingEvidenceRequest();
+        await storeSession(sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+        sseEmitter.send('camera_guidance', evidenceRequest.guidance);
+        sseEmitter.send('evidence_request', evidenceRequest);
+        sseEmitter.end();
+        return;
+      }
       await storeSession(sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
       sseEmitter.send('follow_up_question', followUpQuestion);
       sseEmitter.end();
@@ -493,6 +746,18 @@ async function resumeInvestigation(sessionId, imageBuffer, imageMimeType, sseEmi
     const followUpQuestion = parseJsonBlock(newResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
+      if (shouldReplaceBrakeGrindingQuestion(resumedMessages, followUpQuestion)) {
+        const evidenceRequest = buildBrakeGrindingEvidenceRequest();
+        await storeSession(sessionId, vehicleId, {
+          messages: resumedMessages,
+          totalTokensUsed,
+          fullResponse: newResponse,
+        });
+        sseEmitter.send('camera_guidance', evidenceRequest.guidance);
+        sseEmitter.send('evidence_request', evidenceRequest);
+        sseEmitter.end();
+        return;
+      }
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,
@@ -566,6 +831,18 @@ async function resumeInvestigationWithText(sessionId, answerText, sseEmitter) {
     const followUpQuestion = parseJsonBlock(newResponse, 'follow_up_question');
     if (followUpQuestion) {
       emitPhase(sseEmitter, 'EVIDENCE_GAP');
+      if (shouldReplaceBrakeGrindingQuestion(resumedMessages, followUpQuestion)) {
+        const evidenceRequest = buildBrakeGrindingEvidenceRequest();
+        await storeSession(sessionId, vehicleId, {
+          messages: resumedMessages,
+          totalTokensUsed,
+          fullResponse: newResponse,
+        });
+        sseEmitter.send('camera_guidance', evidenceRequest.guidance);
+        sseEmitter.send('evidence_request', evidenceRequest);
+        sseEmitter.end();
+        return;
+      }
       await storeSession(sessionId, vehicleId, {
         messages: resumedMessages,
         totalTokensUsed,

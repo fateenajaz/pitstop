@@ -45,18 +45,65 @@ function AgentMessage({ children, noPadding = false }) {
   );
 }
 
+function ClarificationMessage({ question, why }) {
+  return (
+    <Motion.div
+      className="chat-msg chat-msg-agent"
+      initial={{ opacity: 0, y: 16, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+    >
+      <div style={{ fontSize: 12, color: 'var(--accent-amber)', marginBottom: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        Clarification Needed
+      </div>
+      <div style={{ marginBottom: why ? 8 : 0 }}>{question}</div>
+      {why && <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{why}</div>}
+    </Motion.div>
+  );
+}
+
 export default function ChatInterface({ messages, isTyping, children }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
 
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    const updateStickiness = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      shouldStickToBottomRef.current = distanceFromBottom < 96;
+    };
+
+    updateStickiness();
+    container.addEventListener('scroll', updateStickiness, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', updateStickiness);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (bottomRef.current && shouldStickToBottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: messages.length > 1 ? 'smooth' : 'auto' });
     }
   }, [messages, isTyping]);
 
   return (
-    <div ref={containerRef} className="chat-container custom-scrollbar" style={{ paddingBottom: 90 }}>
+    <div
+      ref={containerRef}
+      className="chat-container custom-scrollbar"
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
+        touchAction: 'pan-y',
+        paddingBottom: 90,
+      }}
+    >
       <AnimatePresence>
         {messages.map((msg, i) => {
           switch (msg.type) {
@@ -68,6 +115,9 @@ export default function ChatInterface({ messages, isTyping, children }) {
             
             case 'agent-raw':
               return <AgentMessage key={i} noPadding>{msg.content}</AgentMessage>;
+
+            case 'clarification':
+              return <ClarificationMessage key={i} question={msg.question} why={msg.why} />;
             
             case 'system':
               return (
@@ -98,4 +148,4 @@ export default function ChatInterface({ messages, isTyping, children }) {
   );
 }
 
-export { UserMessage, AgentMessage, TypingIndicator };
+export { UserMessage, AgentMessage, ClarificationMessage, TypingIndicator };

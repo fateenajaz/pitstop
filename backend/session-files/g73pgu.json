@@ -1,0 +1,341 @@
+{
+  "sessionId": "g73pgu",
+  "vehicleId": null,
+  "status": "awaiting_clarification",
+  "currentPhase": "EVIDENCE_GAP",
+  "phaseStatus": "",
+  "phaseProgress": null,
+  "modelGuidance": null,
+  "evidenceRequest": null,
+  "followUpQuestion": {
+    "question": "What type of sound do you hear when braking - is it a high-pitched squeal/screech, a grinding/scraping metal sound, or a different type of noise?",
+    "why": "Different brake sounds indicate different failure modes - squealing often means worn pads, while grinding suggests metal-on-metal contact requiring urgent attention."
+  },
+  "brief": null,
+  "annotations": [],
+  "budget": {
+    "used": 2039,
+    "total": 60000,
+    "remaining": 57961
+  },
+  "events": [
+    {
+      "index": 0,
+      "event": "session_start",
+      "data": {
+        "sessionId": "g73pgu"
+      },
+      "timestamp": "2026-04-25T17:26:56.460Z"
+    },
+    {
+      "index": 1,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:26:56.461Z"
+    },
+    {
+      "index": 2,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Reviewing the symptom and initial evidence.",
+        "progress": 0.08
+      },
+      "timestamp": "2026-04-25T17:26:56.462Z"
+    },
+    {
+      "index": 3,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing screeching sound complaint",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:27:00.082Z"
+    },
+    {
+      "index": 4,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering critical details about the screeching",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-25T17:27:01.536Z"
+    },
+    {
+      "index": 5,
+      "event": "budget",
+      "data": {
+        "used": 2045,
+        "total": 60000,
+        "remaining": 57955
+      },
+      "timestamp": "2026-04-25T17:27:03.729Z"
+    },
+    {
+      "index": 6,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:27:03.731Z"
+    },
+    {
+      "index": 7,
+      "event": "follow_up_question",
+      "data": {
+        "question": "Does the screeching sound happen specifically when you press the brakes, or does it occur even when you're not braking?",
+        "why": "This will immediately narrow down whether we're dealing with a brake-related issue or something in the drivetrain/belt system"
+      },
+      "timestamp": "2026-04-25T17:27:03.733Z"
+    },
+    {
+      "index": 8,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:27:32.476Z"
+    },
+    {
+      "index": 9,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:27:32.478Z"
+    },
+    {
+      "index": 10,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:27:36.222Z"
+    },
+    {
+      "index": 11,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing brake noise complaint",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:27:36.225Z"
+    },
+    {
+      "index": 12,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering symptom details",
+        "progress": 0.3
+      },
+      "timestamp": "2026-04-25T17:27:37.768Z"
+    },
+    {
+      "index": 13,
+      "event": "budget",
+      "data": {
+        "used": 2019,
+        "total": 60000,
+        "remaining": 57981
+      },
+      "timestamp": "2026-04-25T17:27:39.819Z"
+    },
+    {
+      "index": 14,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:27:39.823Z"
+    },
+    {
+      "index": 15,
+      "event": "follow_up_question",
+      "data": {
+        "question": "What type of sound do you hear when braking - is it a high-pitched squeal/screech, a grinding/scraping metal sound, or a different type of noise?",
+        "why": "Different brake sounds indicate different failure modes - squealing often means worn pads, while grinding indicates severe wear or damage."
+      },
+      "timestamp": "2026-04-25T17:27:39.826Z"
+    },
+    {
+      "index": 16,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:28:22.885Z"
+    },
+    {
+      "index": 17,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:28:22.888Z"
+    },
+    {
+      "index": 18,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:28:26.544Z"
+    },
+    {
+      "index": 19,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing grinding sound symptom",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:28:26.546Z"
+    },
+    {
+      "index": 20,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:28:28.045Z"
+    },
+    {
+      "index": 21,
+      "event": "phase_update",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP",
+        "status": "Gathering critical details about the grinding",
+        "progress": 0.3
+      },
+      "timestamp": "2026-04-25T17:28:28.049Z"
+    },
+    {
+      "index": 22,
+      "event": "budget",
+      "data": {
+        "used": 2040,
+        "total": 60000,
+        "remaining": 57960
+      },
+      "timestamp": "2026-04-25T17:28:30.916Z"
+    },
+    {
+      "index": 23,
+      "event": "follow_up_question",
+      "data": {
+        "question": "Does the grinding happen specifically when you press the brakes, or does it occur at other times (like when turning, accelerating, or constantly while driving)?",
+        "why": "Grinding during braking usually indicates worn brake pads, while grinding at other times could suggest wheel bearing, CV joint, or transmission issues."
+      },
+      "timestamp": "2026-04-25T17:28:30.921Z"
+    },
+    {
+      "index": 24,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:28:46.090Z"
+    },
+    {
+      "index": 25,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:28:46.094Z"
+    },
+    {
+      "index": 26,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:28:51.208Z"
+    },
+    {
+      "index": 27,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing brake noise complaint",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:28:51.212Z"
+    },
+    {
+      "index": 28,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering essential details about brake noise",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-25T17:28:51.447Z"
+    },
+    {
+      "index": 29,
+      "event": "budget",
+      "data": {
+        "used": 2039,
+        "total": 60000,
+        "remaining": 57961
+      },
+      "timestamp": "2026-04-25T17:28:54.981Z"
+    },
+    {
+      "index": 30,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:28:54.985Z"
+    },
+    {
+      "index": 31,
+      "event": "follow_up_question",
+      "data": {
+        "question": "What type of sound do you hear when braking - is it a high-pitched squeal/screech, a grinding/scraping metal sound, or a different type of noise?",
+        "why": "Different brake sounds indicate different failure modes - squealing often means worn pads, while grinding suggests metal-on-metal contact requiring urgent attention."
+      },
+      "timestamp": "2026-04-25T17:28:54.988Z"
+    }
+  ],
+  "eventCount": 32,
+  "createdAt": "2026-04-25T17:28:54.981Z",
+  "updatedAt": "2026-04-25T17:28:54.990Z"
+}

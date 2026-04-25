@@ -1,0 +1,291 @@
+{
+  "sessionId": "2z3vec",
+  "vehicleId": null,
+  "status": "awaiting_clarification",
+  "currentPhase": "EVIDENCE_GAP",
+  "phaseStatus": "",
+  "phaseProgress": null,
+  "modelGuidance": null,
+  "evidenceRequest": null,
+  "followUpQuestion": {
+    "question": "What specifically happens when you brake - do you hear grinding/squealing sounds, feel vibrations in the pedal/steering wheel, notice the car pulling to one side, or experience a soft/spongy brake pedal?",
+    "why": "Different symptoms point to different brake system failures - sounds indicate worn pads, vibrations suggest warped rotors, pulling means uneven braking, and pedal feel indicates hydraulic issues"
+  },
+  "brief": null,
+  "annotations": [],
+  "budget": {
+    "used": 1800,
+    "total": 60000,
+    "remaining": 58200
+  },
+  "events": [
+    {
+      "index": 0,
+      "event": "budget",
+      "data": {
+        "used": 1825,
+        "total": 60000,
+        "remaining": 58175
+      },
+      "timestamp": "2026-04-25T17:20:40.592Z"
+    },
+    {
+      "index": 1,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:20:40.594Z"
+    },
+    {
+      "index": 2,
+      "event": "follow_up_question",
+      "data": {
+        "question": "When exactly do you hear the screeching - is it when you press the brakes, when turning the steering wheel, constantly while driving, or when the engine first starts?",
+        "why": "The timing of the screech is crucial as brake screeching, belt squealing, and power steering issues each have distinct patterns and urgency levels"
+      },
+      "timestamp": "2026-04-25T17:20:40.596Z"
+    },
+    {
+      "index": 3,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:20:56.391Z"
+    },
+    {
+      "index": 4,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:20:56.392Z"
+    },
+    {
+      "index": 5,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:21:00.349Z"
+    },
+    {
+      "index": 6,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing brake symptom description",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:21:00.351Z"
+    },
+    {
+      "index": 7,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering symptom details",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-25T17:21:01.868Z"
+    },
+    {
+      "index": 8,
+      "event": "budget",
+      "data": {
+        "used": 1796,
+        "total": 60000,
+        "remaining": 58204
+      },
+      "timestamp": "2026-04-25T17:21:05.239Z"
+    },
+    {
+      "index": 9,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:21:05.242Z"
+    },
+    {
+      "index": 10,
+      "event": "follow_up_question",
+      "data": {
+        "question": "What exactly happens when you brake - do you hear grinding/squealing sounds, feel vibrations through the pedal or steering wheel, notice the car pulling to one side, or is the pedal feeling soft/spongy?",
+        "why": "Different symptoms point to different brake system failures - sounds indicate worn pads, vibrations suggest warped rotors, pulling means uneven brake force, and pedal feel indicates hydraulic issues."
+      },
+      "timestamp": "2026-04-25T17:21:05.245Z"
+    },
+    {
+      "index": 11,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:21:21.858Z"
+    },
+    {
+      "index": 12,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:21:21.860Z"
+    },
+    {
+      "index": 13,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:21:25.639Z"
+    },
+    {
+      "index": 14,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing squealing sound complaint",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:21:25.643Z"
+    },
+    {
+      "index": 15,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering initial symptom details",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-25T17:21:27.822Z"
+    },
+    {
+      "index": 16,
+      "event": "budget",
+      "data": {
+        "used": 1802,
+        "total": 60000,
+        "remaining": 58198
+      },
+      "timestamp": "2026-04-25T17:21:30.370Z"
+    },
+    {
+      "index": 17,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:21:30.373Z"
+    },
+    {
+      "index": 18,
+      "event": "follow_up_question",
+      "data": {
+        "question": "When do you hear the squealing - is it when braking, turning the steering wheel, accelerating, or constantly while driving? And does it come from a specific area like the front, rear, or engine bay?",
+        "why": "Different squealing patterns point to completely different systems - brakes squeal when stopping, belts squeal from the engine, power steering squeals when turning"
+      },
+      "timestamp": "2026-04-25T17:21:30.376Z"
+    },
+    {
+      "index": 19,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-25T17:21:54.652Z"
+    },
+    {
+      "index": 20,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-25T17:21:54.655Z"
+    },
+    {
+      "index": 21,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-25T17:21:58.732Z"
+    },
+    {
+      "index": 22,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing brake-related symptom",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-25T17:21:58.734Z"
+    },
+    {
+      "index": 23,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering symptom details",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-25T17:22:00.068Z"
+    },
+    {
+      "index": 24,
+      "event": "budget",
+      "data": {
+        "used": 1800,
+        "total": 60000,
+        "remaining": 58200
+      },
+      "timestamp": "2026-04-25T17:22:02.185Z"
+    },
+    {
+      "index": 25,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-25T17:22:02.189Z"
+    },
+    {
+      "index": 26,
+      "event": "follow_up_question",
+      "data": {
+        "question": "What specifically happens when you brake - do you hear grinding/squealing sounds, feel vibrations in the pedal/steering wheel, notice the car pulling to one side, or experience a soft/spongy brake pedal?",
+        "why": "Different symptoms point to different brake system failures - sounds indicate worn pads, vibrations suggest warped rotors, pulling means uneven braking, and pedal feel indicates hydraulic issues"
+      },
+      "timestamp": "2026-04-25T17:22:02.192Z"
+    }
+  ],
+  "eventCount": 27,
+  "createdAt": "2026-04-25T17:22:02.186Z",
+  "updatedAt": "2026-04-25T17:22:02.194Z"
+}

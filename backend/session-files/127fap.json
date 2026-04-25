@@ -1,0 +1,274 @@
+{
+  "sessionId": "127fap",
+  "vehicleId": null,
+  "status": "awaiting_clarification",
+  "currentPhase": "EVIDENCE_GAP",
+  "phaseStatus": "Grinding during acceleration identified",
+  "phaseProgress": 0.6,
+  "modelGuidance": null,
+  "evidenceRequest": null,
+  "followUpQuestion": {
+    "question": "Does the grinding get worse/louder as you accelerate harder, and does it come from a specific area - front, rear, left or right side of the vehicle?",
+    "why": "This will help determine if it's drivetrain-related (CV joints, differential) or wheel-bearing related, and which components to inspect first"
+  },
+  "brief": null,
+  "annotations": [],
+  "budget": {
+    "used": 3664,
+    "total": 60000,
+    "remaining": 56336
+  },
+  "events": [
+    {
+      "index": 0,
+      "event": "session_start",
+      "data": {
+        "sessionId": "127fap"
+      },
+      "timestamp": "2026-04-24T19:21:45.297Z"
+    },
+    {
+      "index": 1,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-24T19:21:45.298Z"
+    },
+    {
+      "index": 2,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Reviewing the symptom and initial evidence.",
+        "progress": 0.08
+      },
+      "timestamp": "2026-04-24T19:21:45.299Z"
+    },
+    {
+      "index": 3,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing symptom description",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-24T19:21:48.789Z"
+    },
+    {
+      "index": 4,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering clarification on sound characteristics",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-24T19:21:50.649Z"
+    },
+    {
+      "index": 5,
+      "event": "budget",
+      "data": {
+        "used": 1781,
+        "total": 60000,
+        "remaining": 58219
+      },
+      "timestamp": "2026-04-24T19:21:53.721Z"
+    },
+    {
+      "index": 6,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-24T19:21:53.723Z"
+    },
+    {
+      "index": 7,
+      "event": "follow_up_question",
+      "data": {
+        "question": "Can you describe the sound more specifically - is it a grinding, squealing, knocking, humming, or clicking noise? And does it happen when accelerating, braking, turning, or at all times while driving?",
+        "why": "Different sounds and their timing patterns point to completely different mechanical issues"
+      },
+      "timestamp": "2026-04-24T19:21:53.726Z"
+    },
+    {
+      "index": 8,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-24T19:22:01.296Z"
+    },
+    {
+      "index": 9,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-24T19:22:01.298Z"
+    },
+    {
+      "index": 10,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-24T19:22:04.675Z"
+    },
+    {
+      "index": 11,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Analyzing grinding sound symptom",
+        "progress": 0.2
+      },
+      "timestamp": "2026-04-24T19:22:04.677Z"
+    },
+    {
+      "index": 12,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Gathering initial context",
+        "progress": 0.4
+      },
+      "timestamp": "2026-04-24T19:22:06.053Z"
+    },
+    {
+      "index": 13,
+      "event": "budget",
+      "data": {
+        "used": 1753,
+        "total": 60000,
+        "remaining": 58247
+      },
+      "timestamp": "2026-04-24T19:22:07.682Z"
+    },
+    {
+      "index": 14,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-24T19:22:07.686Z"
+    },
+    {
+      "index": 15,
+      "event": "follow_up_question",
+      "data": {
+        "question": "When does the grinding occur - while braking, turning, accelerating, or constantly while driving?",
+        "why": "Different timing patterns point to completely different systems - brakes, wheel bearings, transmission, or suspension components"
+      },
+      "timestamp": "2026-04-24T19:22:07.689Z"
+    },
+    {
+      "index": 16,
+      "event": "phase",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS"
+      },
+      "timestamp": "2026-04-24T19:22:14.633Z"
+    },
+    {
+      "index": 17,
+      "event": "phase_update",
+      "data": {
+        "phase": "ANALYSIS",
+        "label": "PHASE 3 — ANALYSIS",
+        "status": "Reviewing the added symptom details.",
+        "progress": 0.34
+      },
+      "timestamp": "2026-04-24T19:22:14.637Z"
+    },
+    {
+      "index": 18,
+      "event": "phase",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE"
+      },
+      "timestamp": "2026-04-24T19:22:16.975Z"
+    },
+    {
+      "index": 19,
+      "event": "phase_update",
+      "data": {
+        "phase": "INTAKE",
+        "label": "PHASE 1 — INTAKE",
+        "status": "Grinding during acceleration identified",
+        "progress": 0.6
+      },
+      "timestamp": "2026-04-24T19:22:16.978Z"
+    },
+    {
+      "index": 20,
+      "event": "budget",
+      "data": {
+        "used": 3664,
+        "total": 60000,
+        "remaining": 56336
+      },
+      "timestamp": "2026-04-24T19:22:21.658Z"
+    },
+    {
+      "index": 21,
+      "event": "phase",
+      "data": {
+        "phase": "EVIDENCE_GAP",
+        "label": "PHASE 2 — EVIDENCE GAP"
+      },
+      "timestamp": "2026-04-24T19:22:21.662Z"
+    },
+    {
+      "index": 22,
+      "event": "follow_up_question",
+      "data": {
+        "question": "Does the grinding get worse/louder as you accelerate harder, and does it come from a specific area - front, rear, left or right side of the vehicle?",
+        "why": "This will help determine if it's drivetrain-related (CV joints, differential) or wheel-bearing related, and which components to inspect first"
+      },
+      "timestamp": "2026-04-24T19:22:21.665Z"
+    }
+  ],
+  "eventCount": 23,
+  "createdAt": "2026-04-24T19:21:53.722Z",
+  "updatedAt": "2026-04-24T19:22:21.666Z",
+  "error": null,
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Vehicle history:\n{\n  \"vehicleId\": null,\n  \"notes\": [],\n  \"investigations\": []\n}"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "it’s a grinding sound"
+        }
+      ]
+    }
+  ],
+  "totalTokensUsed": 1753,
+  "fullResponse": "<phase_update>{\"phase\":\"INTAKE\",\"status\":\"Analyzing grinding sound symptom\",\"progress\":0.2}</phase_update>\n\nI understand you're experiencing a grinding sound. To help pinpoint the issue, I need a bit more context before we examine the vehicle.\n\n<phase_update>{\"phase\":\"INTAKE\",\"status\":\"Gathering initial context\",\"progress\":0.4}</phase_update>\n\n```follow_up_question\n{\n  \"question\": \"When does the grinding occur - while braking, turning, accelerating, or constantly while driving?\",\n  \"why\": \"Different timing patterns point to completely different systems - brakes, wheel bearings, transmission, or suspension components\"\n}\n```"
+}

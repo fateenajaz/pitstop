@@ -10,7 +10,6 @@ import AnnotatedImage from '../components/AnnotatedImage';
 import EvidenceRequest from '../components/EvidenceRequest';
 import DiagnosticBrief from '../components/DiagnosticBrief';
 import ThinkingPane from '../components/ThinkingPane';
-import BudgetMeter from '../components/BudgetMeter';
 import CaseNotes from '../components/CaseNotes';
 
 function getChatStorageKey(vehicleId) {
@@ -128,10 +127,18 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
 
     const restoredMessages = Array.isArray(saved.messages) ? saved.messages : [];
     /* eslint-disable react-hooks/set-state-in-effect */
-    const normalizedMessages =
-      saved.appState === 'awaiting_clarification' && saved.followUpQuestion?.question
-        ? restoredMessages.filter((message) => !(message?.type === 'agent' && message?.content === saved.followUpQuestion.question))
-        : restoredMessages;
+    const normalizedMessages = restoredMessages.filter((message) => {
+      if (!message) return false;
+      if (
+        saved.appState === 'awaiting_clarification' &&
+        saved.followUpQuestion?.question &&
+        message?.type === 'agent' &&
+        message?.content === saved.followUpQuestion.question
+      ) {
+        return false;
+      }
+      return true;
+    });
 
     setMessages(normalizedMessages);
     setMainImage(saved.mainImage || null);
@@ -268,6 +275,13 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
           setFollowUpQuestion(data);
           setEvidenceRequest(null);
           setAppState('awaiting_clarification');
+          setMessages((prev) => {
+            const alreadyExists = prev.some(
+              (message) => message?.type === 'clarification' && message?.question === data.question,
+            );
+            if (alreadyExists) return prev;
+            return [...prev, { type: 'clarification', question: data.question, why: data.why || '' }];
+          });
           break;
         case 'annotation':
           setAnnotations(prev => [...prev, data]);
@@ -340,6 +354,15 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     setFollowUpQuestion(session.followUpQuestion || null);
     setBrief(session.brief || null);
     setAnnotations(Array.isArray(session.annotations) ? session.annotations : []);
+    if (session.followUpQuestion?.question) {
+      setMessages((prev) => {
+        const alreadyExists = prev.some(
+          (message) => message?.type === 'clarification' && message?.question === session.followUpQuestion.question,
+        );
+        if (alreadyExists) return prev;
+        return [...prev, { type: 'clarification', question: session.followUpQuestion.question, why: session.followUpQuestion.why || '' }];
+      });
+    }
 
     if (session.currentPhase) {
       setEmittedPhases((prev) => new Set(prev).add(session.currentPhase));
@@ -725,15 +748,15 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
                 svgString={car.svgModel}
                 color={car.color || '#3b82f6'} 
                 type={car.type || 'sedan'}
-                size={appState === 'idle' ? 'large' : 'medium'}
-                rotateY={modelAngle.rotateY}
-                rotateX={modelAngle.rotateX}
-                guidance={modelGuidance}
-                phaseLabel={appState === 'idle' ? '' : (currentPhase ? currentPhase.replaceAll('_', ' ') : '')}
-                phaseStatus={appState === 'idle' ? '' : phaseStatus}
-                isAlert={isAlert}
-                showReflection={appState === 'idle'}
-              />
+              size={appState === 'idle' ? 'large' : 'medium'}
+              rotateY={modelAngle.rotateY}
+              rotateX={modelAngle.rotateX}
+              guidance={modelGuidance}
+              phaseLabel=""
+              phaseStatus=""
+              isAlert={isAlert}
+              showReflection={appState === 'idle'}
+            />
             </Motion.div>
 
             {/* Car name shown when idle */}
@@ -778,17 +801,6 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
           }} />
         </div>
 
-        {/* ── Budget bar (sticky when active) ── */}
-        {appState !== 'idle' && (
-          <BudgetMeter 
-            budget={budget} 
-            currentPhase={currentPhase} 
-            emittedPhases={emittedPhases} 
-            phaseStatus={phaseStatus}
-            phaseProgress={phaseProgress}
-            isActive={true} 
-          />
-        )}
       </div>
 
       {/* ── Bottom: Chat Interface ── */}
@@ -879,18 +891,6 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
             {/* Evidence request */}
             {appState === 'awaiting_evidence' && evidenceRequest && (
               <EvidenceRequest request={evidenceRequest} onSubmit={submitEvidence} />
-            )}
-
-            {appState === 'awaiting_clarification' && followUpQuestion && (
-              <div className="chat-msg chat-msg-agent" style={{ alignSelf: 'flex-start' }}>
-                <div style={{ fontSize: 12, color: 'var(--accent-amber)', marginBottom: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                  Clarification Needed
-                </div>
-                <div style={{ marginBottom: 8 }}>{followUpQuestion.question}</div>
-                {followUpQuestion.why && (
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{followUpQuestion.why}</div>
-                )}
-              </div>
             )}
 
             {/* Diagnostic brief */}
@@ -993,192 +993,47 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
                   Manage
                 </div>
 
-                {/* Rename car */}
-                {isEditingName ? (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      autoFocus
-                      style={{
-                        flex: 1, padding: '10px 14px', background: 'var(--bg-elevated)',
-                        border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-                        color: 'var(--text-primary)', fontSize: 14, outline: 'none',
-                        fontFamily: 'var(--font-body)'
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && editName.trim()) {
-                          onUpdateCar(car.id, { name: editName.trim() });
-                          setIsEditingName(false);
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => { if (editName.trim()) { onUpdateCar(car.id, { name: editName.trim() }); setIsEditingName(false); } }}
-                      style={{
-                        width: 40, height: 40, borderRadius: 'var(--radius-md)',
-                        background: editName.trim() ? 'var(--accent-blue)' : 'var(--bg-elevated)',
-                        border: 'none', color: 'white', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                    >
-                      <Check size={16} />
-                    </button>
-                    <button
-                      onClick={() => setIsEditingName(false)}
-                      style={{
-                        width: 40, height: 40, borderRadius: 'var(--radius-md)',
-                        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-secondary)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   <button
                     onClick={() => { setEditName(car.name); setIsEditingName(true); setConfirmAction(null); }}
+                    aria-label="Rename car"
+                    title="Rename car"
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                      padding: '12px 14px', background: 'var(--bg-elevated)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', height: 56, background: 'var(--bg-elevated)',
                       border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14,
-                      fontFamily: 'var(--font-body)', textAlign: 'left'
+                      color: 'var(--text-primary)', cursor: 'pointer'
                     }}
                   >
-                    <Pencil size={16} color="var(--text-secondary)" />
-                    Rename Car
+                    <Pencil size={18} color="var(--text-secondary)" />
                   </button>
-                )}
-
-                {/* Clear history */}
-                {confirmAction === 'clear' ? (
-                  <div style={{
-                    display: 'flex', gap: 8, padding: '12px 14px',
-                    background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-                    borderRadius: 'var(--radius-md)', alignItems: 'center'
-                  }}>
-                    <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-amber)' }}>Clear all investigation history?</span>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await Promise.all([
-                            fetch(`${API}/api/case-notes/${car.id}`, { method: 'DELETE' }),
-                            fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' }),
-                          ]);
-                          setCaseNotes([]);
-                          clearPersistedChat(car.id);
-                          setMessages([]);
-                          setMainImage(null);
-                          setEvidenceImage(null);
-                          setCurrentPhase(null);
-                          setPhaseStatus('');
-                          setPhaseProgress(null);
-                          setEmittedPhases(new Set());
-                          setBudget(null);
-                          setThinkingText('');
-                          setEvidenceRequest(null);
-                          setFollowUpQuestion(null);
-                          setBrief(null);
-                          setAnnotations([]);
-                          setSessionId(null);
-                          setSessionCursor(0);
-                          setModelAngle({ rotateY: 0, rotateX: 0 });
-                          setModelGuidance(null);
-                          setRestoreBanner('');
-                          setAppState('idle');
-                        } catch (e) { console.error(e); }
-                        setConfirmAction(null);
-                      }}
-                      style={{
-                        padding: '6px 14px', background: 'var(--accent-amber)',
-                        border: 'none', borderRadius: 'var(--radius-sm)',
-                        color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-                      }}
-                    >Yes, Clear</button>
-                    <button
-                      onClick={() => setConfirmAction(null)}
-                      style={{
-                        padding: '6px 12px', background: 'transparent',
-                        border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer'
-                      }}
-                    >Cancel</button>
-                  </div>
-                ) : (
                   <button
                     onClick={() => { setConfirmAction('clear'); setIsEditingName(false); }}
+                    aria-label="Clear history"
+                    title="Clear history"
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                      padding: '12px 14px', background: 'var(--bg-elevated)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', height: 56, background: 'var(--bg-elevated)',
                       border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
-                      color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14,
-                      fontFamily: 'var(--font-body)', textAlign: 'left'
+                      color: 'var(--text-primary)', cursor: 'pointer'
                     }}
                   >
-                    <RotateCcw size={16} color="var(--text-secondary)" />
-                    Clear History
-                    {caseNotes.length > 0 && (
-                      <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                        {caseNotes.length} note{caseNotes.length !== 1 ? 's' : ''}
-                      </span>
-                    )}
+                    <RotateCcw size={18} color="var(--text-secondary)" />
                   </button>
-                )}
-
-                {/* Delete car */}
-                {confirmAction === 'delete' ? (
-                  <div style={{
-                    display: 'flex', gap: 8, padding: '12px 14px',
-                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-                    borderRadius: 'var(--radius-md)', alignItems: 'center'
-                  }}>
-                    <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-red)' }}>Delete this car permanently?</span>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' });
-                        } catch (error) {
-                          console.error(error);
-                        }
-                        clearPersistedChat(car.id);
-                        setRestoreBanner('');
-                        setSessionCursor(0);
-                        onDeleteCar(car.id);
-                        navigate('/');
-                      }}
-                      style={{
-                        padding: '6px 14px', background: 'var(--accent-red)',
-                        border: 'none', borderRadius: 'var(--radius-sm)',
-                        color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-                      }}
-                    >Delete</button>
-                    <button
-                      onClick={() => setConfirmAction(null)}
-                      style={{
-                        padding: '6px 12px', background: 'transparent',
-                        border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer'
-                      }}
-                    >Cancel</button>
-                  </div>
-                ) : (
                   <button
                     onClick={() => { setConfirmAction('delete'); setIsEditingName(false); }}
+                    aria-label="Delete car"
+                    title="Delete car"
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                      padding: '12px 14px', background: 'var(--bg-elevated)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', height: 56, background: 'var(--bg-elevated)',
                       border: '1px solid rgba(239,68,68,0.15)', borderRadius: 'var(--radius-md)',
-                      color: 'var(--accent-red)', cursor: 'pointer', fontSize: 14,
-                      fontFamily: 'var(--font-body)', textAlign: 'left'
+                      color: 'var(--accent-red)', cursor: 'pointer'
                     }}
                   >
-                    <Trash2 size={16} />
-                    Delete Car
+                    <Trash2 size={18} />
                   </button>
-                )}
+                </div>
               </div>
 
               {/* Divider */}
@@ -1189,6 +1044,255 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
                 Investigation History
               </div>
               <CaseNotes notes={caseNotes} activeVehicle={car} />
+            </Motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {(isEditingName || confirmAction) && (
+          <>
+            <Motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setIsEditingName(false); setConfirmAction(null); }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.72)',
+                backdropFilter: 'blur(6px)',
+                zIndex: 140,
+              }}
+            />
+            <Motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.96 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 150,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 24,
+                paddingTop: 'calc(24px + var(--safe-top))',
+                paddingBottom: 'calc(24px + var(--safe-bottom))',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 420,
+                  borderRadius: 'var(--radius-xl)',
+                  border: '1px solid var(--border-light)',
+                  background: 'var(--bg-surface)',
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: 22,
+                }}
+              >
+                {isEditingName ? (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+                      Rename Car
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>
+                      Update the vehicle name shown in your garage and investigation history.
+                    </div>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--text-primary)',
+                        fontSize: 15,
+                        outline: 'none',
+                        fontFamily: 'var(--font-body)',
+                        marginBottom: 16,
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && editName.trim()) {
+                          onUpdateCar(car.id, { name: editName.trim() });
+                          setIsEditingName(false);
+                        }
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => setIsEditingName(false)}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'transparent',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'var(--text-secondary)',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (editName.trim()) {
+                            onUpdateCar(car.id, { name: editName.trim() });
+                            setIsEditingName(false);
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: editName.trim() ? 'var(--accent-blue)' : 'var(--bg-elevated)',
+                          border: 'none',
+                          borderRadius: 'var(--radius-md)',
+                          color: editName.trim() ? 'white' : 'var(--text-muted)',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: editName.trim() ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </>
+                ) : confirmAction === 'clear' ? (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+                      Clear History
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 18 }}>
+                      Remove all saved investigations, notes, chat history, and active diagnostic state for this car?
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => setConfirmAction(null)}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'transparent',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'var(--text-secondary)',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await Promise.all([
+                              fetch(`${API}/api/case-notes/${car.id}`, { method: 'DELETE' }),
+                              fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' }),
+                            ]);
+                            setCaseNotes([]);
+                            clearPersistedChat(car.id);
+                            setMessages([]);
+                            setMainImage(null);
+                            setEvidenceImage(null);
+                            setCurrentPhase(null);
+                            setPhaseStatus('');
+                            setPhaseProgress(null);
+                            setEmittedPhases(new Set());
+                            setBudget(null);
+                            setThinkingText('');
+                            setEvidenceRequest(null);
+                            setFollowUpQuestion(null);
+                            setBrief(null);
+                            setAnnotations([]);
+                            setSessionId(null);
+                            setSessionCursor(0);
+                            setModelAngle({ rotateY: 0, rotateX: 0 });
+                            setModelGuidance(null);
+                            setRestoreBanner('');
+                            setAppState('idle');
+                          } catch (e) {
+                            console.error(e);
+                          }
+                          setConfirmAction(null);
+                          setShowNotes(false);
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'var(--accent-amber)',
+                          border: 'none',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'white',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--accent-red)' }}>
+                      Delete Car
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 18 }}>
+                      Permanently remove this car and all associated investigation data from your garage?
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        onClick={() => setConfirmAction(null)}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'transparent',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'var(--text-secondary)',
+                          fontSize: 14,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' });
+                          } catch (error) {
+                            console.error(error);
+                          }
+                          clearPersistedChat(car.id);
+                          setRestoreBanner('');
+                          setSessionCursor(0);
+                          onDeleteCar(car.id);
+                          navigate('/');
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'var(--accent-red)',
+                          border: 'none',
+                          borderRadius: 'var(--radius-md)',
+                          color: 'white',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </Motion.div>
           </>
         )}
