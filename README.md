@@ -92,13 +92,18 @@ Required Convex environment variables:
 
 ```text
 ANTHROPIC_API_KEY
+AUTH_SECRET
 ANTHROPIC_INVESTIGATION_MODEL
 ANTHROPIC_FOLLOW_UP_MODEL
+PASSWORD_HASH_ITERATIONS
+SESSION_TTL_MS
 CLIENT_ORIGIN
 RATE_LIMIT_WINDOW_MS
 RATE_LIMIT_MAX_REQUESTS
 AI_RATE_LIMIT_MAX_REQUESTS
 ```
+
+`AUTH_SECRET` should be a random value with at least 32 characters. It is used as a server-side pepper for password hashes and session token hashes, so changing it invalidates existing passwords and sessions.
 
 Required Vercel environment variable:
 

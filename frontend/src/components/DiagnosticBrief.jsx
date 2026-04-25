@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import UrgencyBadge from './UrgencyBadge';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 export default function DiagnosticBrief({ brief, garages }) {
   const [briefSent, setBriefSent] = useState(false);
@@ -13,7 +13,7 @@ export default function DiagnosticBrief({ brief, garages }) {
   const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
@@ -199,6 +199,6 @@ export default function DiagnosticBrief({ brief, garages }) {
           ))}
         </div>
       )}
-    </motion.div>
+    </Motion.div>
   );
 }

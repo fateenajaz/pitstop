@@ -8,6 +8,8 @@ const BUDGET = 60000;
 const DEFAULT_RATE_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000);
 const DEFAULT_RATE_LIMIT = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 80);
 const AI_RATE_LIMIT = Number(process.env.AI_RATE_LIMIT_MAX_REQUESTS || 12);
+const PASSWORD_ITERATIONS = Number(process.env.PASSWORD_HASH_ITERATIONS || 210_000);
+const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000);
 
 const CAMERA_TARGET_VIEWS = [
   "front",
@@ -291,7 +293,98 @@ function pathSuffix(request: Request, prefix: string) {
 }
 
 function randomSessionId() {
-  return Math.random().toString(36).slice(2, 10);
+  return randomToken(8);
+}
+
+function getAuthSecret() {
+  const secret = process.env.AUTH_SECRET || "";
+  if (secret.length < 32) {
+    throw new Error("AUTH_SECRET must be configured with at least 32 characters.");
+  }
+  return secret;
+}
+
+function bytesToBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function randomToken(byteLength = 32) {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return bytesToBase64Url(bytes);
+}
+
+async function sha256Base64Url(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return bytesToBase64Url(new Uint8Array(digest));
+}
+
+async function hashPassword(password: string, salt: string, iterations = PASSWORD_ITERATIONS) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(`${password}:${getAuthSecret()}`),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: new TextEncoder().encode(salt),
+      iterations,
+    },
+    key,
+    256,
+  );
+  return bytesToBase64Url(new Uint8Array(bits));
+}
+
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
+
+function validateCredentials(username: string, password: string) {
+  if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+    return "Username must be 3-24 characters using only letters, numbers, and underscores.";
+  }
+  if (password.length < 10 || password.length > 128) {
+    return "Password must be 10-128 characters.";
+  }
+  return null;
+}
+
+function bearerToken(request: Request) {
+  const header = request.headers.get("Authorization") || "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+async function tokenHash(token: string) {
+  return sha256Base64Url(`${token}:${getAuthSecret()}`);
+}
+
+async function requireUser(ctx: any, request: Request) {
+  const token = bearerToken(request);
+  if (!token) return null;
+  const session = await ctx.runQuery(internal.state.getAuthSession, {
+    tokenHash: await tokenHash(token),
+    now: Date.now(),
+  });
+  return session?.user || null;
+}
+
+async function requireOwnedCar(ctx: any, user: any, vehicleId: string) {
+  if (!user || !vehicleId) return null;
+  return ctx.runQuery(internal.state.getOwnedCar, {
+    userId: user.id,
+    publicId: vehicleId,
+  });
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -635,12 +728,12 @@ async function requestClaude(messages: any[], sseEmitter: SseEmitter) {
   return { fullResponse: parserState.fullText, usage };
 }
 
-async function answerFollowUp(ctx: any, vehicleId: string, promptText: string, chatMessages: any[] = [], brief: any = null) {
+async function answerFollowUp(ctx: any, user: any, vehicleId: string, promptText: string, chatMessages: any[] = [], brief: any = null) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is not configured.");
   }
 
-  const history = await ctx.runQuery(internal.state.getCaseFile, { vehicleId });
+  const history = await ctx.runQuery(internal.state.getCaseFile, { userId: user.id, vehicleId });
   const transcript = chatMessages
     .filter((message) => message && (message.type === "user" || message.type === "agent" || message.type === "system"))
     .map((message) => {
@@ -700,13 +793,13 @@ async function answerFollowUp(ctx: any, vehicleId: string, promptText: string, c
     .trim();
 }
 
-async function storeSession(ctx: any, sessionId: string, vehicleId: string, data: any) {
-  await ctx.runMutation(internal.state.saveSession, { sessionId, patch: { vehicleId, ...data } });
+async function storeSession(ctx: any, user: any, sessionId: string, vehicleId: string, data: any) {
+  await ctx.runMutation(internal.state.saveSession, { sessionId, patch: { userId: user.id, vehicleId, ...data } });
 }
 
-async function getSessionMessages(ctx: any, session: any) {
+async function getSessionMessages(ctx: any, user: any, session: any) {
   if (Array.isArray(session?.messages)) return session.messages;
-  const history = await ctx.runQuery(internal.state.getCaseFile, { vehicleId: session.vehicleId });
+  const history = await ctx.runQuery(internal.state.getCaseFile, { userId: user.id, vehicleId: session.vehicleId });
   const baseMessages: any[] = [
     {
       role: "user",
@@ -731,7 +824,7 @@ async function getSessionMessages(ctx: any, session: any) {
   return baseMessages;
 }
 
-async function finalizeBrief(ctx: any, vehicleId: string, brief: any, sseEmitter: SseEmitter) {
+async function finalizeBrief(ctx: any, user: any, vehicleId: string, brief: any, sseEmitter: SseEmitter) {
   emitPhase(sseEmitter, "VERIFICATION");
   emitPhase(sseEmitter, "BRIEF");
   sseEmitter.send("brief", brief);
@@ -741,7 +834,7 @@ async function finalizeBrief(ctx: any, vehicleId: string, brief: any, sseEmitter
   }
 
   if (brief.case_note) {
-    await ctx.runMutation(internal.state.appendCaseNote, { vehicleId, note: brief.case_note });
+    await ctx.runMutation(internal.state.appendCaseNote, { userId: user.id, vehicleId, note: brief.case_note });
     sseEmitter.send("case_note", { line: brief.case_note });
   }
 
@@ -749,14 +842,14 @@ async function finalizeBrief(ctx: any, vehicleId: string, brief: any, sseEmitter
   sseEmitter.end();
 }
 
-async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, symptomText: string, image: any, sseEmitter: SseEmitter) {
+async function runInvestigation(ctx: any, user: any, vehicleId: string, sessionId: string, symptomText: string, image: any, sseEmitter: SseEmitter) {
   emitPhaseUpdate(sseEmitter, {
     phase: "INTAKE",
     status: "Reviewing the symptom and initial evidence.",
     progress: 0.08,
   });
 
-  const history = await ctx.runQuery(internal.state.getCaseFile, { vehicleId });
+  const history = await ctx.runQuery(internal.state.getCaseFile, { userId: user.id, vehicleId });
   const content: any[] = [
     { type: "text", text: `Vehicle history:\n${JSON.stringify(history, null, 2)}` },
     { type: "text", text: `Symptom described: ${symptomText}` },
@@ -769,7 +862,7 @@ async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, 
   }
 
   const messages = [{ role: "user", content }];
-  await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed: 0, fullResponse: "" });
+  await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed: 0, fullResponse: "" });
 
   const { fullResponse, usage } = await requestClaude(messages, sseEmitter);
   const totalTokensUsed = updateBudgetFromUsage(usage, 0, sseEmitter);
@@ -777,7 +870,7 @@ async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, 
   const evidenceRequest = parseJsonBlock(fullResponse, "evidence_request");
   if (evidenceRequest) {
     emitPhase(sseEmitter, "EVIDENCE_GAP");
-    await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+    await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
     sseEmitter.send("evidence_request", evidenceRequest);
     sseEmitter.end();
     return;
@@ -788,13 +881,13 @@ async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, 
     emitPhase(sseEmitter, "EVIDENCE_GAP");
     if (shouldReplaceBrakeGrindingQuestion(messages, followUpQuestion)) {
       const replacement = buildBrakeGrindingEvidenceRequest();
-      await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+      await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
       sseEmitter.send("camera_guidance", replacement.guidance);
       sseEmitter.send("evidence_request", replacement);
       sseEmitter.end();
       return;
     }
-    await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+    await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
     sseEmitter.send("follow_up_question", followUpQuestion);
     sseEmitter.end();
     return;
@@ -802,7 +895,7 @@ async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, 
 
   const brief = parseJsonBlock(fullResponse, "diagnostic_brief");
   if (brief) {
-    await finalizeBrief(ctx, vehicleId, brief, sseEmitter);
+    await finalizeBrief(ctx, user, vehicleId, brief, sseEmitter);
     return;
   }
 
@@ -810,9 +903,9 @@ async function runInvestigation(ctx: any, vehicleId: string, sessionId: string, 
   sseEmitter.end();
 }
 
-async function resumeInvestigation(ctx: any, sessionId: string, image: any, sseEmitter: SseEmitter) {
+async function resumeInvestigation(ctx: any, user: any, sessionId: string, image: any, sseEmitter: SseEmitter) {
   const session = await ctx.runQuery(internal.state.loadSession, { sessionId });
-  if (!session) {
+  if (!session || session.userId !== user.id) {
     sseEmitter.send("done", { error: "Session not found" });
     sseEmitter.end();
     return;
@@ -825,7 +918,7 @@ async function resumeInvestigation(ctx: any, sessionId: string, image: any, sseE
   });
 
   const hasStoredMessages = Array.isArray(session.messages);
-  const messages = await getSessionMessages(ctx, session);
+  const messages = await getSessionMessages(ctx, user, session);
   const fullResponse = typeof session.fullResponse === "string" ? session.fullResponse : "";
   const resumedMessages = [
     ...messages,
@@ -841,12 +934,12 @@ async function resumeInvestigation(ctx: any, sessionId: string, image: any, sseE
 
   const { fullResponse: newResponse, usage } = await requestClaude(resumedMessages, sseEmitter);
   const totalTokensUsed = updateBudgetFromUsage(usage, session.totalTokensUsed || 0, sseEmitter);
-  await handleContinuationOutput(ctx, sessionId, session.vehicleId, resumedMessages, totalTokensUsed, newResponse, sseEmitter);
+  await handleContinuationOutput(ctx, user, sessionId, session.vehicleId, resumedMessages, totalTokensUsed, newResponse, sseEmitter);
 }
 
-async function resumeInvestigationWithText(ctx: any, sessionId: string, answerText: string, sseEmitter: SseEmitter) {
+async function resumeInvestigationWithText(ctx: any, user: any, sessionId: string, answerText: string, sseEmitter: SseEmitter) {
   const session = await ctx.runQuery(internal.state.loadSession, { sessionId });
-  if (!session) {
+  if (!session || session.userId !== user.id) {
     sseEmitter.send("done", { error: "Session not found" });
     sseEmitter.end();
     return;
@@ -859,7 +952,7 @@ async function resumeInvestigationWithText(ctx: any, sessionId: string, answerTe
   });
 
   const hasStoredMessages = Array.isArray(session.messages);
-  const messages = await getSessionMessages(ctx, session);
+  const messages = await getSessionMessages(ctx, user, session);
   const fullResponse = typeof session.fullResponse === "string" ? session.fullResponse : "";
   const resumedMessages = [
     ...messages,
@@ -869,11 +962,12 @@ async function resumeInvestigationWithText(ctx: any, sessionId: string, answerTe
 
   const { fullResponse: newResponse, usage } = await requestClaude(resumedMessages, sseEmitter);
   const totalTokensUsed = updateBudgetFromUsage(usage, session.totalTokensUsed || 0, sseEmitter);
-  await handleContinuationOutput(ctx, sessionId, session.vehicleId, resumedMessages, totalTokensUsed, newResponse, sseEmitter);
+  await handleContinuationOutput(ctx, user, sessionId, session.vehicleId, resumedMessages, totalTokensUsed, newResponse, sseEmitter);
 }
 
 async function handleContinuationOutput(
   ctx: any,
+  user: any,
   sessionId: string,
   vehicleId: string,
   messages: any[],
@@ -884,7 +978,7 @@ async function handleContinuationOutput(
   const evidenceRequest = parseJsonBlock(fullResponse, "evidence_request");
   if (evidenceRequest) {
     emitPhase(sseEmitter, "EVIDENCE_GAP");
-    await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+    await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
     sseEmitter.send("evidence_request", evidenceRequest);
     sseEmitter.end();
     return;
@@ -895,13 +989,13 @@ async function handleContinuationOutput(
     emitPhase(sseEmitter, "EVIDENCE_GAP");
     if (shouldReplaceBrakeGrindingQuestion(messages, followUpQuestion)) {
       const replacement = buildBrakeGrindingEvidenceRequest();
-      await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+      await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
       sseEmitter.send("camera_guidance", replacement.guidance);
       sseEmitter.send("evidence_request", replacement);
       sseEmitter.end();
       return;
     }
-    await storeSession(ctx, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
+    await storeSession(ctx, user, sessionId, vehicleId, { messages, totalTokensUsed, fullResponse });
     sseEmitter.send("follow_up_question", followUpQuestion);
     sseEmitter.end();
     return;
@@ -909,7 +1003,7 @@ async function handleContinuationOutput(
 
   const brief = parseJsonBlock(fullResponse, "diagnostic_brief");
   if (brief) {
-    await finalizeBrief(ctx, vehicleId, brief, sseEmitter);
+    await finalizeBrief(ctx, user, vehicleId, brief, sseEmitter);
     return;
   }
 
@@ -966,6 +1060,212 @@ function createSseResponse(request: Request, sessionId: string | null, ctx: any,
 const http = httpRouter();
 
 http.route({
+  path: "/api/auth/register",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "POST,OPTIONS")),
+});
+
+http.route({
+  path: "/api/auth/register",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await enforceRateLimit(ctx, request, "auth-register", 8, DEFAULT_RATE_WINDOW_MS);
+    if (limited) return limited;
+
+    const { username = "", password = "" } = await request.json();
+    const cleanUsername = String(username).trim();
+    const cleanPassword = String(password);
+    const validationError = validateCredentials(cleanUsername, cleanPassword);
+    if (validationError) return jsonResponse(request, { error: validationError }, 400);
+
+    const usernameLower = normalizeUsername(cleanUsername);
+    const existing = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
+    if (existing) return jsonResponse(request, { error: "Username is already taken." }, 409);
+
+    const salt = randomToken(24);
+    const passwordHash = await hashPassword(cleanPassword, salt);
+    const { userId } = await ctx.runMutation(internal.state.createUser, {
+      username: cleanUsername,
+      usernameLower,
+      passwordHash,
+      salt,
+      iterations: PASSWORD_ITERATIONS,
+    });
+
+    const token = randomToken(32);
+    await ctx.runMutation(internal.state.createAuthSession, {
+      userId,
+      tokenHash: await tokenHash(token),
+      expiresAt: Date.now() + SESSION_TTL_MS,
+    });
+
+    return jsonResponse(request, {
+      token,
+      user: { id: userId, username: cleanUsername },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/auth/login",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "POST,OPTIONS")),
+});
+
+http.route({
+  path: "/api/auth/login",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await enforceRateLimit(ctx, request, "auth-login", 10, DEFAULT_RATE_WINDOW_MS);
+    if (limited) return limited;
+
+    const { username = "", password = "" } = await request.json();
+    const usernameLower = normalizeUsername(String(username));
+    const user = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
+
+    if (!user) return jsonResponse(request, { error: "Invalid username or password." }, 401);
+
+    const candidateHash = await hashPassword(String(password), user.salt, user.iterations);
+    if (candidateHash !== user.passwordHash) {
+      return jsonResponse(request, { error: "Invalid username or password." }, 401);
+    }
+
+    const token = randomToken(32);
+    await ctx.runMutation(internal.state.createAuthSession, {
+      userId: user._id,
+      tokenHash: await tokenHash(token),
+      expiresAt: Date.now() + SESSION_TTL_MS,
+    });
+
+    return jsonResponse(request, {
+      token,
+      user: { id: user._id, username: user.username },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/auth/me",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "GET,OPTIONS")),
+});
+
+http.route({
+  path: "/api/auth/me",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { user: null }, 401);
+    return jsonResponse(request, { user });
+  }),
+});
+
+http.route({
+  path: "/api/auth/logout",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "POST,OPTIONS")),
+});
+
+http.route({
+  path: "/api/auth/logout",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const token = bearerToken(request);
+    if (token) {
+      await ctx.runMutation(internal.state.deleteAuthSession, { tokenHash: await tokenHash(token) });
+    }
+    return jsonResponse(request, { success: true });
+  }),
+});
+
+http.route({
+  path: "/api/cars",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "GET,POST,OPTIONS")),
+});
+
+http.route({
+  path: "/api/cars",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
+    const cars = await ctx.runQuery(internal.state.listCars, { userId: user.id });
+    return jsonResponse(request, { cars });
+  }),
+});
+
+http.route({
+  path: "/api/cars",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
+
+    const body = await request.json();
+    const name = String(body.name || "").trim();
+    if (!name) return jsonResponse(request, { error: "Car name is required." }, 400);
+
+    const car = await ctx.runMutation(internal.state.createCar, {
+      userId: user.id,
+      publicId: `car_${randomToken(12)}`,
+      name: name.slice(0, 80),
+      label: String(body.label || "Vehicle").slice(0, 80),
+      type: String(body.type || "sedan").slice(0, 40),
+      color: String(body.color || "#3b82f6").slice(0, 24),
+      modelAsset: typeof body.modelAsset === "string" ? body.modelAsset.slice(0, 200) : undefined,
+      photos: Array.isArray(body.photos) ? body.photos.slice(0, 8).map((item: unknown) => String(item)) : [],
+    });
+
+    return jsonResponse(request, { car }, 201);
+  }),
+});
+
+http.route({
+  pathPrefix: "/api/cars/",
+  method: "OPTIONS",
+  handler: httpAction(async (_, request) => optionsResponse(request, "PATCH,DELETE,OPTIONS")),
+});
+
+http.route({
+  pathPrefix: "/api/cars/",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
+
+    const publicId = pathSuffix(request, "/api/cars/");
+    const body = await request.json();
+    const updates = {
+      name: typeof body.name === "string" ? body.name.trim().slice(0, 80) : undefined,
+      label: typeof body.label === "string" ? body.label.slice(0, 80) : undefined,
+      type: typeof body.type === "string" ? body.type.slice(0, 40) : undefined,
+      color: typeof body.color === "string" ? body.color.slice(0, 24) : undefined,
+      modelAsset: typeof body.modelAsset === "string" ? body.modelAsset.slice(0, 200) : undefined,
+      photos: Array.isArray(body.photos) ? body.photos.slice(0, 8).map((item: unknown) => String(item)) : undefined,
+    };
+
+    await ctx.runMutation(internal.state.updateCar, { userId: user.id, publicId, updates });
+    return jsonResponse(request, { success: true });
+  }),
+});
+
+http.route({
+  pathPrefix: "/api/cars/",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
+
+    const publicId = pathSuffix(request, "/api/cars/");
+    await ctx.runMutation(internal.state.deleteCar, { userId: user.id, publicId });
+    await ctx.runMutation(internal.state.clearCaseFile, { userId: user.id, vehicleId: publicId });
+    await ctx.runMutation(internal.state.clearVehicleSessions, { userId: user.id, vehicleId: publicId });
+    return jsonResponse(request, { success: true });
+  }),
+});
+
+http.route({
   path: "/api/investigate",
   method: "OPTIONS",
   handler: httpAction(async (_, request) => optionsResponse(request, "POST,OPTIONS")),
@@ -977,6 +1277,8 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "investigate", AI_RATE_LIMIT);
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const formData = await request.formData();
     const symptomText = String(formData.get("symptomText") || "");
@@ -991,11 +1293,14 @@ http.route({
         sseEmitter.end();
       });
     }
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
 
     await ctx.runMutation(internal.state.saveSession, {
       sessionId,
       patch: {
         sessionId,
+        userId: user.id,
         vehicleId,
         status: "streaming",
         currentPhase: "INTAKE",
@@ -1013,7 +1318,7 @@ http.route({
 
     return createSseResponse(request, sessionId, ctx, async (sseEmitter) => {
       sseEmitter.send("session_start", { sessionId });
-      await runInvestigation(ctx, vehicleId, sessionId, symptomText, image, sseEmitter);
+      await runInvestigation(ctx, user, vehicleId, sessionId, symptomText, image, sseEmitter);
     });
   }),
 });
@@ -1030,6 +1335,8 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "submit-evidence", AI_RATE_LIMIT);
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const formData = await request.formData();
     const sessionId = String(formData.get("sessionId") || "");
@@ -1045,7 +1352,7 @@ http.route({
     }
 
     const existingSession = await ctx.runQuery(internal.state.loadSession, { sessionId });
-    if (!existingSession) {
+    if (!existingSession || existingSession.userId !== user.id) {
       return createSseResponse(request, null, ctx, async (sseEmitter) => {
         sseEmitter.send("done", { error: "Session not found." });
         sseEmitter.end();
@@ -1055,6 +1362,7 @@ http.route({
     await ctx.runMutation(internal.state.saveSession, {
       sessionId,
       patch: {
+        userId: user.id,
         vehicleId: vehicleId || existingSession.vehicleId || null,
         status: "streaming",
         phaseStatus: "Reviewing the requested evidence.",
@@ -1066,7 +1374,7 @@ http.route({
     });
 
     return createSseResponse(request, sessionId, ctx, async (sseEmitter) => {
-      await resumeInvestigation(ctx, sessionId, image, sseEmitter);
+      await resumeInvestigation(ctx, user, sessionId, image, sseEmitter);
     });
   }),
 });
@@ -1083,6 +1391,8 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "submit-clarification", AI_RATE_LIMIT);
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const { sessionId, answerText } = await request.json();
     if (!sessionId || !answerText) {
@@ -1093,7 +1403,7 @@ http.route({
     }
 
     const existingSession = await ctx.runQuery(internal.state.loadSession, { sessionId });
-    if (!existingSession) {
+    if (!existingSession || existingSession.userId !== user.id) {
       return createSseResponse(request, null, ctx, async (sseEmitter) => {
         sseEmitter.send("done", { error: "Session not found." });
         sseEmitter.end();
@@ -1103,6 +1413,7 @@ http.route({
     await ctx.runMutation(internal.state.saveSession, {
       sessionId,
       patch: {
+        userId: user.id,
         vehicleId: existingSession.vehicleId || null,
         status: "streaming",
         phaseStatus: "Reviewing the clarification.",
@@ -1114,7 +1425,7 @@ http.route({
     });
 
     return createSseResponse(request, sessionId, ctx, async (sseEmitter) => {
-      await resumeInvestigationWithText(ctx, sessionId, String(answerText), sseEmitter);
+      await resumeInvestigationWithText(ctx, user, sessionId, String(answerText), sseEmitter);
     });
   }),
 });
@@ -1131,14 +1442,18 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "chat-followup", AI_RATE_LIMIT);
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const { vehicleId, promptText, chatMessages, brief } = await request.json();
     if (!vehicleId || !promptText || typeof promptText !== "string") {
       return jsonResponse(request, { error: "vehicleId and promptText are required." }, 400);
     }
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
 
     try {
-      const reply = await answerFollowUp(ctx, vehicleId, promptText, Array.isArray(chatMessages) ? chatMessages : [], brief || null);
+      const reply = await answerFollowUp(ctx, user, vehicleId, promptText, Array.isArray(chatMessages) ? chatMessages : [], brief || null);
       return jsonResponse(request, { reply });
     } catch (error: any) {
       console.error("Follow-up chat error:", error);
@@ -1159,9 +1474,13 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "case-notes");
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const vehicleId = pathSuffix(request, "/api/case-notes/");
-    const history = await ctx.runQuery(internal.state.getCaseFile, { vehicleId });
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
+    const history = await ctx.runQuery(internal.state.getCaseFile, { userId: user.id, vehicleId });
     return jsonResponse(request, history);
   }),
 });
@@ -1172,10 +1491,14 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "clear-case-notes");
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const vehicleId = pathSuffix(request, "/api/case-notes/");
-    await ctx.runMutation(internal.state.clearCaseFile, { vehicleId });
-    await ctx.runMutation(internal.state.clearVehicleSessions, { vehicleId });
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
+    await ctx.runMutation(internal.state.clearCaseFile, { userId: user.id, vehicleId });
+    await ctx.runMutation(internal.state.clearVehicleSessions, { userId: user.id, vehicleId });
     return jsonResponse(request, { success: true });
   }),
 });
@@ -1192,11 +1515,15 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "investigation-state");
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const vehicleId = pathSuffix(request, "/api/investigation-state/");
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
     const url = new URL(request.url);
     const since = Number.parseInt(url.searchParams.get("since") || "", 10);
-    const session = await ctx.runQuery(internal.state.findLatestVehicleSession, { vehicleId });
+    const session = await ctx.runQuery(internal.state.findLatestVehicleSession, { userId: user.id, vehicleId });
 
     if (!session) return jsonResponse(request, { session: null, events: [], cursor: 0 });
 
@@ -1234,9 +1561,13 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "clear-investigation-state");
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     const vehicleId = pathSuffix(request, "/api/investigation-state/");
-    await ctx.runMutation(internal.state.clearVehicleSessions, { vehicleId });
+    const car = await requireOwnedCar(ctx, user, vehicleId);
+    if (!car) return jsonResponse(request, { error: "Car not found." }, 404);
+    await ctx.runMutation(internal.state.clearVehicleSessions, { userId: user.id, vehicleId });
     return jsonResponse(request, { success: true });
   }),
 });
@@ -1253,6 +1584,8 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const limited = await enforceRateLimit(ctx, request, "garages");
     if (limited) return limited;
+    const user = await requireUser(ctx, request);
+    if (!user) return jsonResponse(request, { error: "Unauthorized." }, 401);
 
     return jsonResponse(request, [
       {

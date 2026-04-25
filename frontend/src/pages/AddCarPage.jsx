@@ -31,11 +31,10 @@ export default function AddCarPage({ onAddCar }) {
 
   const selectedOption = CAR_OPTIONS.find((option) => option.type === selectedType) || CAR_OPTIONS[0];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!carName.trim()) return;
 
     const newCar = {
-      id: `car-${Date.now()}`,
       name: carName.trim(),
       label: selectedOption.label,
       type: selectedOption.type,
@@ -45,10 +44,15 @@ export default function AddCarPage({ onAddCar }) {
     };
 
     setIsDone(true);
-    setTimeout(() => {
-      onAddCar(newCar);
-      navigate('/');
-    }, 900);
+    try {
+      await onAddCar(newCar);
+      setTimeout(() => {
+        navigate('/');
+      }, 600);
+    } catch (error) {
+      console.error(error);
+      setIsDone(false);
+    }
   };
 
   return (

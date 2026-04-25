@@ -12,33 +12,33 @@ import DiagnosticBrief from '../components/DiagnosticBrief';
 import ThinkingPane from '../components/ThinkingPane';
 import CaseNotes from '../components/CaseNotes';
 
-function getChatStorageKey(vehicleId) {
-  return `pitstop-chat-${vehicleId}`;
+function getChatStorageKey(vehicleId, scope = 'local') {
+  return `pitstop-chat-${scope}-${vehicleId}`;
 }
 
-function loadPersistedChat(vehicleId) {
+function loadPersistedChat(vehicleId, scope) {
   if (!vehicleId) return null;
   try {
-    const raw = localStorage.getItem(getChatStorageKey(vehicleId));
+    const raw = localStorage.getItem(getChatStorageKey(vehicleId, scope));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function persistChat(vehicleId, snapshot) {
+function persistChat(vehicleId, scope, snapshot) {
   if (!vehicleId) return;
   try {
-    localStorage.setItem(getChatStorageKey(vehicleId), JSON.stringify(snapshot));
+    localStorage.setItem(getChatStorageKey(vehicleId, scope), JSON.stringify(snapshot));
   } catch {
     // Ignore storage failures.
   }
 }
 
-function clearPersistedChat(vehicleId) {
+function clearPersistedChat(vehicleId, scope) {
   if (!vehicleId) return;
   try {
-    localStorage.removeItem(getChatStorageKey(vehicleId));
+    localStorage.removeItem(getChatStorageKey(vehicleId, scope));
   } catch {
     // Ignore storage failures.
   }
@@ -58,7 +58,7 @@ function isGreeting(text = '') {
   return /^(hi|hello|hey|yo|good morning|good afternoon|good evening)\b/i.test(text.trim());
 }
 
-export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
+export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar, apiFetch = fetch, authUser }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const car = cars.find(c => c.id === id);
@@ -105,12 +105,13 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
   const hasRestoredServerSessionRef = useRef(false);
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const chatScope = authUser?.id || 'local';
 
   useEffect(() => {
     if (!car) return;
-    fetch(`${API}/api/garages`).then(r => r.json()).then(setGarages).catch(console.error);
-    fetch(`${API}/api/case-notes/${car.id}`).then(r => r.json()).then(d => setCaseNotes(d.notes || [])).catch(console.error);
-  }, [API, car]);
+    apiFetch(`${API}/api/garages`).then(r => r.json()).then(setGarages).catch(console.error);
+    apiFetch(`${API}/api/case-notes/${car.id}`).then(r => r.json()).then(d => setCaseNotes(d.notes || [])).catch(console.error);
+  }, [API, apiFetch, car]);
 
   useEffect(() => {
     hasRestoredServerSessionRef.current = false;
@@ -119,7 +120,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
   useEffect(() => {
     if (!car) return;
 
-    const saved = loadPersistedChat(car.id);
+    const saved = loadPersistedChat(car.id, chatScope);
     if (!saved) {
       hasHydratedChatRef.current = true;
       return;
@@ -176,12 +177,12 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     /* eslint-enable react-hooks/set-state-in-effect */
 
     hasHydratedChatRef.current = true;
-  }, [car]);
+  }, [car, chatScope]);
 
   useEffect(() => {
     if (!car || !hasHydratedChatRef.current) return;
 
-    persistChat(car.id, {
+    persistChat(car.id, chatScope, {
       appState,
       sessionId,
       sessionCursor,
@@ -207,6 +208,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     brief,
     budget,
     car,
+    chatScope,
     currentPhase,
     emittedPhases,
     evidenceImage,
@@ -401,7 +403,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
 
     const syncSession = async () => {
       try {
-        const response = await fetch(`${API}/api/investigation-state/${car.id}`);
+        const response = await apiFetch(`${API}/api/investigation-state/${car.id}`);
         if (!response.ok) return;
         const data = await response.json();
         if (cancelled || !data?.session) return;
@@ -424,7 +426,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     return () => {
       cancelled = true;
     };
-  }, [API, car]);
+  }, [API, apiFetch, car]);
 
   useEffect(() => {
     if (sessionPollRef.current) {
@@ -436,7 +438,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
 
     sessionPollRef.current = window.setInterval(async () => {
       try {
-        const response = await fetch(`${API}/api/investigation-state/${car.id}?since=${sessionCursor}`);
+        const response = await apiFetch(`${API}/api/investigation-state/${car.id}?since=${sessionCursor}`);
         if (!response.ok) return;
         const data = await response.json();
         if (!data?.session) return;
@@ -463,7 +465,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
         sessionPollRef.current = null;
       }
     };
-  }, [API, appState, brief, car, isLiveStreaming, sessionCursor, sessionId]);
+  }, [API, apiFetch, appState, brief, car, isLiveStreaming, sessionCursor, sessionId]);
 
   const startInvestigation = async (symptomText, file = null, previewUrl = null) => {
     setAppState('investigating');
@@ -497,7 +499,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     if (file) formData.append('image', file);
 
     try {
-      const response = await fetch(`${API}/api/investigate`, {
+      const response = await apiFetch(`${API}/api/investigate`, {
         method: 'POST',
         body: formData,
       });
@@ -534,7 +536,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     formData.append('image', file);
 
     try {
-      const response = await fetch(`${API}/api/submit-evidence`, {
+      const response = await apiFetch(`${API}/api/submit-evidence`, {
         method: 'POST',
         body: formData,
       });
@@ -560,7 +562,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
     setMessages(prev => [...prev, { type: 'user', text: answerText.trim() }]);
 
     try {
-      const response = await fetch(`${API}/api/submit-clarification`, {
+      const response = await apiFetch(`${API}/api/submit-clarification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, answerText: answerText.trim() }),
@@ -603,7 +605,7 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
       setMessages((prev) => [...prev, { type: 'user', text: trimmed }]);
       setAppState('investigating');
       setRestoreBanner('');
-      fetch(`${API}/api/chat-followup`, {
+      apiFetch(`${API}/api/chat-followup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1192,11 +1194,11 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
                         onClick={async () => {
                           try {
                             await Promise.all([
-                              fetch(`${API}/api/case-notes/${car.id}`, { method: 'DELETE' }),
-                              fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' }),
+                              apiFetch(`${API}/api/case-notes/${car.id}`, { method: 'DELETE' }),
+                              apiFetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' }),
                             ]);
                             setCaseNotes([]);
-                            clearPersistedChat(car.id);
+                            clearPersistedChat(car.id, chatScope);
                             setMessages([]);
                             setMainImage(null);
                             setEvidenceImage(null);
@@ -1265,14 +1267,14 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar }) {
                       <button
                         onClick={async () => {
                           try {
-                            await fetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' });
+                            await apiFetch(`${API}/api/investigation-state/${car.id}`, { method: 'DELETE' });
                           } catch (error) {
                             console.error(error);
                           }
-                          clearPersistedChat(car.id);
+                          clearPersistedChat(car.id, chatScope);
                           setRestoreBanner('');
                           setSessionCursor(0);
-                          onDeleteCar(car.id);
+                          await onDeleteCar(car.id);
                           navigate('/');
                         }}
                         style={{

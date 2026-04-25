@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 const CAR_PATHS = {
   sedan: `M 60 170 
@@ -69,9 +69,10 @@ export default function CarSilhouette({
   
   const cfg = sizeConfig[size] || sizeConfig.large;
   const glowColor = isAlert ? 'rgba(239,68,68,0.3)' : `${color}33`;
-  const glowId = `glow-${Math.random().toString(36).slice(2, 8)}`;
-  const gradId = `grad-${Math.random().toString(36).slice(2, 8)}`;
-  const reflectId = `reflect-${Math.random().toString(36).slice(2, 8)}`;
+  const idPrefix = useId().replace(/:/g, '');
+  const glowId = `glow-${idPrefix}`;
+  const gradId = `grad-${idPrefix}`;
+  const reflectId = `reflect-${idPrefix}`;
 
   return (
     <div 

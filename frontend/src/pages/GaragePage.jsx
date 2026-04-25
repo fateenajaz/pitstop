@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronRight, Trash2, Pencil } from 'lucide-react';
+import { Plus, ChevronRight, Trash2, Pencil, LogOut } from 'lucide-react';
 import CarModel from '../components/CarModel';
 
 const CAR_COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1'];
 
-export default function GaragePage({ cars, onDeleteCar }) {
+export default function GaragePage({ cars, onDeleteCar, onLogout, user, isLoading }) {
   const navigate = useNavigate();
   const [editMode, setEditMode] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  const handleDeleteClick = (e, carId) => {
+  const handleDeleteClick = async (e, carId) => {
     e.stopPropagation();
     if (confirmDelete === carId) {
-      onDeleteCar(carId);
+      await onDeleteCar(carId);
       setConfirmDelete(null);
       if (cars.length <= 1) setEditMode(false);
     } else {
@@ -56,31 +56,51 @@ export default function GaragePage({ cars, onDeleteCar }) {
               </h1>
             </div>
 
-            {/* Edit toggle */}
-            {cars.length > 0 && (
-            <button
-              onClick={() => { setEditMode(!editMode); setConfirmDelete(null); }}
-              style={{
-                background: editMode ? 'var(--accent-blue-glow)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${editMode ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
-                color: editMode ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-                fontFamily: 'var(--font-body)',
-                fontWeight: 500,
-                transition: 'all 0.2s',
-                marginTop: 4
-              }}
-            >
-              <Pencil size={14} />
-              {editMode ? 'Done' : 'Edit'}
-            </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {cars.length > 0 && (
+                <button
+                  onClick={() => { setEditMode(!editMode); setConfirmDelete(null); }}
+                  style={{
+                    background: editMode ? 'var(--accent-blue-glow)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${editMode ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
+                    color: editMode ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    padding: '8px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: 13,
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    transition: 'all 0.2s',
+                    marginTop: 4
+                  }}
+                >
+                  <Pencil size={14} />
+                  {editMode ? 'Done' : 'Edit'}
+                </button>
+              )}
+              <button
+                onClick={onLogout}
+                title={user?.username ? `Sign out ${user.username}` : 'Sign out'}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  width: 38,
+                  height: 38,
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 4
+                }}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </Motion.div>
       </div>
@@ -257,6 +277,11 @@ export default function GaragePage({ cars, onDeleteCar }) {
             </Motion.div>
           )}
         </div>
+        {!isLoading && cars.length === 0 && (
+          <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, marginTop: 12 }}>
+            Your garage is empty.
+          </div>
+        )}
       </div>
 
       {/* Bottom branding */}
