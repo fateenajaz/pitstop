@@ -1069,40 +1069,45 @@ http.route({
   path: "/api/auth/register",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const limited = await enforceRateLimit(ctx, request, "auth-register", 8, DEFAULT_RATE_WINDOW_MS);
-    if (limited) return limited;
+    try {
+      const limited = await enforceRateLimit(ctx, request, "auth-register", 8, DEFAULT_RATE_WINDOW_MS);
+      if (limited) return limited;
 
-    const { username = "", password = "" } = await request.json();
-    const cleanUsername = String(username).trim();
-    const cleanPassword = String(password);
-    const validationError = validateCredentials(cleanUsername, cleanPassword);
-    if (validationError) return jsonResponse(request, { error: validationError }, 400);
+      const { username = "", password = "" } = await request.json();
+      const cleanUsername = String(username).trim();
+      const cleanPassword = String(password);
+      const validationError = validateCredentials(cleanUsername, cleanPassword);
+      if (validationError) return jsonResponse(request, { error: validationError }, 400);
 
-    const usernameLower = normalizeUsername(cleanUsername);
-    const existing = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
-    if (existing) return jsonResponse(request, { error: "Username is already taken." }, 409);
+      const usernameLower = normalizeUsername(cleanUsername);
+      const existing = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
+      if (existing) return jsonResponse(request, { error: "Username is already taken." }, 409);
 
-    const salt = randomToken(24);
-    const passwordHash = await hashPassword(cleanPassword, salt);
-    const { userId } = await ctx.runMutation(internal.state.createUser, {
-      username: cleanUsername,
-      usernameLower,
-      passwordHash,
-      salt,
-      iterations: PASSWORD_ITERATIONS,
-    });
+      const salt = randomToken(24);
+      const passwordHash = await hashPassword(cleanPassword, salt);
+      const { userId } = await ctx.runMutation(internal.state.createUser, {
+        username: cleanUsername,
+        usernameLower,
+        passwordHash,
+        salt,
+        iterations: PASSWORD_ITERATIONS,
+      });
 
-    const token = randomToken(32);
-    await ctx.runMutation(internal.state.createAuthSession, {
-      userId,
-      tokenHash: await tokenHash(token),
-      expiresAt: Date.now() + SESSION_TTL_MS,
-    });
+      const token = randomToken(32);
+      await ctx.runMutation(internal.state.createAuthSession, {
+        userId,
+        tokenHash: await tokenHash(token),
+        expiresAt: Date.now() + SESSION_TTL_MS,
+      });
 
-    return jsonResponse(request, {
-      token,
-      user: { id: userId, username: cleanUsername },
-    });
+      return jsonResponse(request, {
+        token,
+        user: { id: userId, username: cleanUsername },
+      });
+    } catch (error: any) {
+      console.error("Register failed:", error);
+      return jsonResponse(request, { error: error?.message || "Registration failed." }, 500);
+    }
   }),
 });
 
@@ -1116,31 +1121,36 @@ http.route({
   path: "/api/auth/login",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const limited = await enforceRateLimit(ctx, request, "auth-login", 10, DEFAULT_RATE_WINDOW_MS);
-    if (limited) return limited;
+    try {
+      const limited = await enforceRateLimit(ctx, request, "auth-login", 10, DEFAULT_RATE_WINDOW_MS);
+      if (limited) return limited;
 
-    const { username = "", password = "" } = await request.json();
-    const usernameLower = normalizeUsername(String(username));
-    const user = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
+      const { username = "", password = "" } = await request.json();
+      const usernameLower = normalizeUsername(String(username));
+      const user = await ctx.runQuery(internal.state.getUserByUsernameLower, { usernameLower });
 
-    if (!user) return jsonResponse(request, { error: "Invalid username or password." }, 401);
+      if (!user) return jsonResponse(request, { error: "Invalid username or password." }, 401);
 
-    const candidateHash = await hashPassword(String(password), user.salt, user.iterations);
-    if (candidateHash !== user.passwordHash) {
-      return jsonResponse(request, { error: "Invalid username or password." }, 401);
+      const candidateHash = await hashPassword(String(password), user.salt, user.iterations);
+      if (candidateHash !== user.passwordHash) {
+        return jsonResponse(request, { error: "Invalid username or password." }, 401);
+      }
+
+      const token = randomToken(32);
+      await ctx.runMutation(internal.state.createAuthSession, {
+        userId: user._id,
+        tokenHash: await tokenHash(token),
+        expiresAt: Date.now() + SESSION_TTL_MS,
+      });
+
+      return jsonResponse(request, {
+        token,
+        user: { id: user._id, username: user.username },
+      });
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      return jsonResponse(request, { error: error?.message || "Login failed." }, 500);
     }
-
-    const token = randomToken(32);
-    await ctx.runMutation(internal.state.createAuthSession, {
-      userId: user._id,
-      tokenHash: await tokenHash(token),
-      expiresAt: Date.now() + SESSION_TTL_MS,
-    });
-
-    return jsonResponse(request, {
-      token,
-      user: { id: user._id, username: user.username },
-    });
   }),
 });
 

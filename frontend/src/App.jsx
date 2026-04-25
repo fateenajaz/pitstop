@@ -104,11 +104,16 @@ export default function App() {
 
   const handleAuth = async ({ mode, username, password }) => {
     setAuthError('');
-    const response = await fetch(`${API}/api/auth/${mode}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    let response;
+    try {
+      response = await fetch(`${API}/api/auth/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch {
+      throw new Error(`Could not reach the auth server at ${API}. Check VITE_API_URL, Convex deploy status, and CLIENT_ORIGIN.`);
+    }
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
