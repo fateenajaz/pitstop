@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion as Motion } from 'framer-motion';
-import { Lock, UserRound } from 'lucide-react';
+import { Lock, UserRound, Gauge } from 'lucide-react';
 
 export default function AuthPage({ onSubmit, error }) {
   const [mode, setMode] = useState('login');
@@ -15,13 +15,13 @@ export default function AuthPage({ onSubmit, error }) {
     event.preventDefault();
     setLocalError('');
 
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(username.trim())) {
-      setLocalError('Use 3-24 letters, numbers, or underscores.');
+    if (!username.trim()) {
+      setLocalError('Username is required.');
       return;
     }
 
-    if (password.length < 10) {
-      setLocalError('Password must be at least 10 characters.');
+    if (!password) {
+      setLocalError('Password is required.');
       return;
     }
 
@@ -36,32 +36,59 @@ export default function AuthPage({ onSubmit, error }) {
   };
 
   return (
-    <div className="page-enter" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <div
+      className="page-enter"
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        background: '#050505',
+      }}
+    >
       <Motion.form
         onSubmit={handleSubmit}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
           width: 'min(100%, 420px)',
-          border: '1px solid var(--border-subtle)',
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 22,
+          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025))',
+          borderRadius: 8,
+          padding: 24,
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
+          gap: 18,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.55)',
         }}
       >
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>
-            Pit Stop
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255,255,255,0.06)',
+            }}
+          >
+            <Gauge size={21} color="#f5f5f5" />
           </div>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, margin: 0, lineHeight: 1.2 }}>
-            {isRegister ? 'Create account' : 'Sign in'}
-          </h1>
+          <div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em', color: '#777', textTransform: 'uppercase', marginBottom: 5 }}>
+              Pit Stop
+            </div>
+            <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 28, margin: 0, lineHeight: 1.1, color: '#f5f5f5', letterSpacing: 0 }}>
+              {isRegister ? 'Create account' : 'Sign in'}
+            </h1>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 4, background: 'rgba(255,255,255,0.035)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 4, background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
           {[
             ['login', 'Sign in'],
             ['register', 'Create'],
@@ -72,10 +99,10 @@ export default function AuthPage({ onSubmit, error }) {
               onClick={() => { setMode(value); setLocalError(''); }}
               style={{
                 height: 38,
-                borderRadius: '10px',
+                borderRadius: 6,
                 border: 'none',
-                background: mode === value ? 'var(--accent-blue)' : 'transparent',
-                color: mode === value ? 'white' : 'var(--text-secondary)',
+                background: mode === value ? '#f4f4f4' : 'transparent',
+                color: mode === value ? '#050505' : '#9b9b9b',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -89,14 +116,14 @@ export default function AuthPage({ onSubmit, error }) {
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Username
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 48, padding: '0 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)' }}>
-            <UserRound size={18} color="var(--text-tertiary)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 50, padding: '0 13px', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, background: '#0d0d0d' }}>
+            <UserRound size={18} color="#777" />
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               autoComplete="username"
               spellCheck={false}
-              style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15 }}
+              style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#f5f5f5', fontSize: 15 }}
             />
           </div>
         </label>
@@ -105,14 +132,14 @@ export default function AuthPage({ onSubmit, error }) {
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Password
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 48, padding: '0 12px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)' }}>
-            <Lock size={18} color="var(--text-tertiary)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 50, padding: '0 13px', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, background: '#0d0d0d' }}>
+            <Lock size={18} color="#777" />
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete={isRegister ? 'new-password' : 'current-password'}
-              style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15 }}
+              style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#f5f5f5', fontSize: 15 }}
             />
           </div>
         </label>
@@ -129,9 +156,9 @@ export default function AuthPage({ onSubmit, error }) {
           style={{
             height: 48,
             border: 'none',
-            borderRadius: 'var(--radius-md)',
-            background: isSubmitting ? 'var(--bg-elevated)' : 'var(--accent-blue)',
-            color: 'white',
+            borderRadius: 8,
+            background: isSubmitting ? '#2a2a2a' : '#f4f4f4',
+            color: isSubmitting ? '#777' : '#050505',
             cursor: isSubmitting ? 'wait' : 'pointer',
             fontFamily: 'var(--font-heading)',
             fontSize: 15,

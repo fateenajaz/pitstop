@@ -350,11 +350,11 @@ function normalizeUsername(username: string) {
 }
 
 function validateCredentials(username: string, password: string) {
-  if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-    return "Username must be 3-24 characters using only letters, numbers, and underscores.";
+  if (username.trim().length === 0) {
+    return "Username is required.";
   }
-  if (password.length < 10 || password.length > 128) {
-    return "Password must be 10-128 characters.";
+  if (password.length === 0) {
+    return "Password is required.";
   }
   return null;
 }
