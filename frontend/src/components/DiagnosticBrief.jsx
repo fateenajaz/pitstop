@@ -4,11 +4,17 @@ import { motion as Motion } from 'framer-motion';
 
 export default function DiagnosticBrief({ brief, garages }) {
   const [briefSent, setBriefSent] = useState(false);
+  const confidence = Number.isFinite(Number(brief?.confidence)) ? Number(brief.confidence) : 0;
+  const primaryFault = brief?.primary_fault || brief?.primaryFault || brief?.fault || 'Diagnosis complete';
+  const explanation = brief?.plain_explanation || brief?.explanation || brief?.summary || 'The AI completed the diagnosis, but the explanation text was not included in the expected field.';
+  const ignoredRisk = brief?.what_happens_if_ignored || brief?.risk_if_ignored || brief?.risk || 'Delaying inspection may let the fault worsen or create a safety risk.';
+  const estimatedCost = brief?.estimated_cost_band || brief?.estimatedCost || brief?.cost || 'Ask a garage for an estimate';
+  const recommendedAction = brief?.recommended_action || brief?.recommendedAction || brief?.next_step || 'Have the vehicle inspected by a qualified mechanic.';
 
   let fillColor = 'var(--urgent-low)';
-  if (brief.urgency === 'moderate') fillColor = 'var(--urgent-moderate)';
-  if (brief.urgency === 'high') fillColor = 'var(--urgent-high)';
-  if (brief.urgency === 'critical') fillColor = 'var(--urgent-critical)';
+  if (brief?.urgency === 'moderate') fillColor = 'var(--urgent-moderate)';
+  if (brief?.urgency === 'high') fillColor = 'var(--urgent-high)';
+  if (brief?.urgency === 'critical') fillColor = 'var(--urgent-critical)';
 
   const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -38,7 +44,7 @@ export default function DiagnosticBrief({ brief, garages }) {
               {todayStr}
             </div>
           </div>
-          <UrgencyBadge urgency={brief.urgency} text={brief.urgency_label} />
+          <UrgencyBadge urgency={brief?.urgency || 'moderate'} text={brief?.urgency_label || brief?.urgencyLabel || 'Inspection recommended'} />
         </div>
 
         <div style={{ height: 1, background: 'var(--border-subtle)', marginBottom: 16 }} />
@@ -62,16 +68,16 @@ export default function DiagnosticBrief({ brief, garages }) {
             color: 'var(--text-primary)',
             marginBottom: 8 
           }}>
-            {brief.primary_fault}
+            {primaryFault}
           </div>
           
           {/* Confidence bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flex: 1, height: 3, background: 'var(--border-subtle)', borderRadius: 2, overflow: 'hidden', maxWidth: 160 }}>
-              <div style={{ height: '100%', width: `${Math.round(brief.confidence * 100)}%`, background: fillColor, borderRadius: 2, transition: 'width 0.6s ease' }} />
+              <div style={{ height: '100%', width: `${Math.round(confidence * 100)}%`, background: fillColor, borderRadius: 2, transition: 'width 0.6s ease' }} />
             </div>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>
-              {Math.round(brief.confidence * 100)}%
+              {Math.round(confidence * 100)}%
             </span>
           </div>
         </div>
@@ -89,7 +95,7 @@ export default function DiagnosticBrief({ brief, garages }) {
             What's happening
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
-            {brief.plain_explanation}
+            {explanation}
           </p>
         </div>
 
@@ -106,7 +112,7 @@ export default function DiagnosticBrief({ brief, garages }) {
             If ignored
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
-            {brief.what_happens_if_ignored}
+            {ignoredRisk}
           </p>
         </div>
 
@@ -125,7 +131,7 @@ export default function DiagnosticBrief({ brief, garages }) {
               Est. Cost
             </div>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>
-              {brief.estimated_cost_band}
+              {estimatedCost}
             </div>
           </div>
           <div style={{ padding: 12 }}>
@@ -133,7 +139,7 @@ export default function DiagnosticBrief({ brief, garages }) {
               Action
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-              {brief.recommended_action}
+              {recommendedAction}
             </div>
           </div>
         </div>

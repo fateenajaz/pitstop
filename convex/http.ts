@@ -224,9 +224,26 @@ function getAllowedOrigin(request: Request) {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
+  const isLocalDevOrigin = (() => {
+    if (!origin) return false;
+    try {
+      const { hostname, protocol } = new URL(origin);
+      if (protocol !== "http:" && protocol !== "https:") return false;
+      return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "[::1]" ||
+        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  })();
 
   if (!origin) return configured[0] || "*";
-  if (configured.length === 0 && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
+  if (isLocalDevOrigin) return origin;
   return configured.includes(origin) ? origin : configured[0] || "https://pitstop.invalid";
 }
 

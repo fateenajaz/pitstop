@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
+import DiagnosticBrief from './DiagnosticBrief';
 
 function TypingIndicator() {
   return (
@@ -62,7 +63,7 @@ function ClarificationMessage({ question, why }) {
   );
 }
 
-export default function ChatInterface({ messages, isTyping, children }) {
+export default function ChatInterface({ messages, isTyping, children, garages = [] }) {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const shouldStickToBottomRef = useRef(true);
@@ -115,6 +116,13 @@ export default function ChatInterface({ messages, isTyping, children }) {
             
             case 'agent-raw':
               return <AgentMessage key={i} noPadding>{msg.content}</AgentMessage>;
+
+            case 'brief':
+              return (
+                <AgentMessage key={i} noPadding>
+                  <DiagnosticBrief brief={msg.brief} garages={garages} />
+                </AgentMessage>
+              );
 
             case 'clarification':
               return <ClarificationMessage key={i} question={msg.question} why={msg.why} />;

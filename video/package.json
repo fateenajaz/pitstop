@@ -1,0 +1,25 @@
+{
+  "name": "pitstop-video",
+  "version": "1.0.0",
+  "description": "Remotion product video for Pit Stop",
+  "type": "module",
+  "main": "src/index.jsx",
+  "scripts": {
+    "generate:storyboard": "node scripts/generate-storyboard.mjs",
+    "preview": "remotion preview src/index.jsx",
+    "render": "remotion render src/index.jsx PitstopMobileDemo out/pitstop-mobile-demo.mp4 --codec=h264 --pixel-format=yuv420p",
+    "render:low": "remotion render src/index.jsx PitstopMobileDemo out/pitstop-mobile-demo-preview.mp4 --codec=h264 --pixel-format=yuv420p --scale=0.5"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@remotion/cli": "^4.0.452",
+    "@remotion/media-utils": "^4.0.452",
+    "dotenv": "^17.4.2",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "remotion": "^4.0.452"
+  }
+}

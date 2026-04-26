@@ -295,6 +295,11 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar, apiFetch
           setModelGuidance(null);
           setPhaseStatus('Diagnosis complete.');
           setPhaseProgress(1);
+          setMessages((prev) => {
+            const alreadyExists = prev.some((message) => message?.type === 'brief');
+            if (alreadyExists) return prev;
+            return [...prev, { type: 'brief', brief: data }];
+          });
           break;
         case 'case_note':
           setCaseNotes(prev => [...prev, { timestamp: new Date().toISOString(), note: data.line }]);
@@ -356,6 +361,13 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar, apiFetch
     setFollowUpQuestion(session.followUpQuestion || null);
     setBrief(session.brief || null);
     setAnnotations(Array.isArray(session.annotations) ? session.annotations : []);
+    if (session.brief) {
+      setMessages((prev) => {
+        const alreadyExists = prev.some((message) => message?.type === 'brief');
+        if (alreadyExists) return prev;
+        return [...prev, { type: 'brief', brief: session.brief }];
+      });
+    }
     if (session.followUpQuestion?.question) {
       setMessages((prev) => {
         const alreadyExists = prev.some(
@@ -866,7 +878,12 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar, apiFetch
           </div>
         ) : (
           /* Chat area */
-          <ChatInterface messages={messages} isTyping={isInvestigating}>
+          <ChatInterface messages={messages} isTyping={isInvestigating} garages={garages}>
+            {/* Diagnostic brief fallback for restored sessions that predate brief chat messages */}
+            {appState === 'complete' && brief && !messages.some((message) => message?.type === 'brief') && (
+              <DiagnosticBrief brief={brief} garages={garages} />
+            )}
+
             {/* Annotated image inline */}
             {displayImage && (
               <Motion.div
@@ -895,41 +912,38 @@ export default function CarDetailPage({ cars, onDeleteCar, onUpdateCar, apiFetch
               <EvidenceRequest request={evidenceRequest} onSubmit={submitEvidence} />
             )}
 
-            {/* Diagnostic brief */}
+            {/* Follow-up actions */}
             {appState === 'complete' && brief && (
-              <>
-                <DiagnosticBrief brief={brief} garages={garages} />
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    marginTop: 12,
-                    alignSelf: 'flex-start',
-                    maxWidth: 420,
-                  }}
-                >
-                  {followUpChips.map((chip) => (
-                    <button
-                      key={chip}
-                      onClick={() => handleSendMessage(chip)}
-                      disabled={isInvestigating}
-                      style={{
-                        borderRadius: 999,
-                        border: '1px solid rgba(59,130,246,0.24)',
-                        background: 'rgba(59,130,246,0.08)',
-                        color: 'var(--text-secondary)',
-                        padding: '8px 12px',
-                        fontSize: 12,
-                        cursor: isInvestigating ? 'default' : 'pointer',
-                        opacity: isInvestigating ? 0.6 : 1,
-                      }}
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-              </>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginTop: 12,
+                  alignSelf: 'flex-start',
+                  maxWidth: 420,
+                }}
+              >
+                {followUpChips.map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => handleSendMessage(chip)}
+                    disabled={isInvestigating}
+                    style={{
+                      borderRadius: 999,
+                      border: '1px solid rgba(59,130,246,0.24)',
+                      background: 'rgba(59,130,246,0.08)',
+                      color: 'var(--text-secondary)',
+                      padding: '8px 12px',
+                      fontSize: 12,
+                      cursor: isInvestigating ? 'default' : 'pointer',
+                      opacity: isInvestigating ? 0.6 : 1,
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
             )}
           </ChatInterface>
         )}

@@ -5,6 +5,59 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+const MAX_STORED_STRING_CHARS = 120_000;
+const MAX_STORED_MESSAGES = 16;
+
+function sanitizeSessionValue(value: any): any {
+  if (typeof value === "string") {
+    if (value.startsWith("data:image/")) return "[omitted image data URL]";
+    if (value.length > MAX_STORED_STRING_CHARS) {
+      return `${value.slice(0, MAX_STORED_STRING_CHARS)}\n...[truncated ${value.length - MAX_STORED_STRING_CHARS} chars]`;
+    }
+    return value;
+  }
+
+  if (Array.isArray(value)) return value.map(sanitizeSessionValue);
+
+  if (!value || typeof value !== "object") return value;
+
+  if (value.type === "image" && value.source) {
+    return {
+      type: "text",
+      text: "[Image uploaded and analyzed in this investigation. Raw image bytes omitted from saved session.]",
+    };
+  }
+
+  if (value.type === "base64" && typeof value.data === "string") {
+    return {
+      ...value,
+      data: `[omitted base64 payload: ${value.data.length} chars]`,
+    };
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entryValue]) => [key, sanitizeSessionValue(entryValue)]),
+  );
+}
+
+function sanitizeSessionPatch(patch: any) {
+  const cleanPatch = Object.fromEntries(
+    Object.entries(patch ?? {}).filter(([, value]) => typeof value !== "undefined"),
+  );
+
+  if (Array.isArray(cleanPatch.messages)) {
+    cleanPatch.messages = cleanPatch.messages
+      .slice(-MAX_STORED_MESSAGES)
+      .map(sanitizeSessionValue);
+  }
+
+  if (Array.isArray(cleanPatch.events)) {
+    cleanPatch.events = cleanPatch.events.map(sanitizeSessionValue);
+  }
+
+  return sanitizeSessionValue(cleanPatch);
+}
+
 export const getCaseFile = internalQuery({
   args: { userId: v.id("users"), vehicleId: v.string() },
   handler: async (ctx, { userId, vehicleId }) => {
@@ -77,9 +130,7 @@ export const saveSession = internalMutation({
       .first();
 
     const timestamp = nowIso();
-    const cleanPatch = Object.fromEntries(
-      Object.entries(patch ?? {}).filter(([, value]) => typeof value !== "undefined"),
-    );
+    const cleanPatch = sanitizeSessionPatch(patch);
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -149,24 +200,26 @@ export const appendSessionEvent = internalMutation({
 
     if (!existing) return null;
 
+    const cleanPatch = sanitizeSessionPatch(patch);
+    const cleanData = sanitizeSessionValue(data);
     const eventCount = existing.eventCount || 0;
     const nextEvents = [
       ...(Array.isArray(existing.events) ? existing.events : []),
       {
         index: eventCount,
         event,
-        data,
+        data: cleanData,
         timestamp: nowIso(),
       },
     ].slice(-200);
 
     const nextAnnotations =
       event === "annotation"
-        ? [...(Array.isArray(existing.annotations) ? existing.annotations : []), data]
+        ? [...(Array.isArray(existing.annotations) ? existing.annotations : []), cleanData]
         : existing.annotations ?? [];
 
     await ctx.db.patch(existing._id, {
-      ...(patch ?? {}),
+      ...cleanPatch,
       annotations: nextAnnotations,
       events: nextEvents,
       eventCount: eventCount + 1,

@@ -1,4 +1,5 @@
 node_modules
+.DS_Store
 .env
 .env.local
 .convex
@@ -6,3 +7,4 @@ backend/.env
 frontend/.env
 backend/case-files/
 backend/tmp/
+video/out/
